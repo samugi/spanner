@@ -39,10 +39,36 @@ function ExprNode({ data }: any) {
       </div>
     )
   }
+
+  if (data.kind === 'let') {
+    return (
+      <div style={{ padding: 10, border: '1px solid white' }}>
+        <div>let</div>
+
+        {data.bindings.map((b: string, i: number) => (
+          <Handle
+            key={i}
+            type="target"
+            position={Position.Left}
+            id={`bind-${i}`}
+          />
+        ))}
+
+        <Handle type="target" position={Position.Bottom} id="body" />
+        <Handle type="source" position={Position.Right} />
+      </div>
+    )
+  }
 }
 
+type LetNodeData = {
+  kind: 'let'
+  bindings: string[]   // variable names
+}
+
+
 type ExprNodeData = {
-  kind: 'call' | 'literal'
+  kind: 'call' | 'literal' | 'let'
   value?: number
   name?: string
 }
@@ -71,13 +97,25 @@ const initialNodes: Node[] = [
     position: { x: 450, y: 150 },
     data: { kind: 'call', name: 'print' },
     type: 'expr',
-  }
+  },
+  {
+    id: '5',
+    position: { x: 350, y: 150 },
+    type: 'expr',
+    data: {
+      kind: 'let',
+      bindings: ['x', 'y'],
+    },
+  },
 ];
 
 const initialEdges: Edge[] = [
   { id: 'e1', source: '1', target: '3', targetHandle: '0' },
   { id: 'e2', source: '2', target: '3', targetHandle: '1' },
-  { id: 'e3', source: '3', target: '4', targetHandle: '0' },
+  { id: 'e4', source: '1', target: '5', targetHandle: 'bind-0' },
+  { id: 'e5', source: '2', target: '5', targetHandle: 'bind-1' },
+  { id: 'e3', source: '3', target: '5', targetHandle: 'body' },
+  { id: 'e6', source: '5', target: '4', targetHandle: '0' },
 ];
 
 const nodeTypes = {
@@ -85,23 +123,85 @@ const nodeTypes = {
   span: SpanNode,
 }
 
-function generate(nodeId: string, nodes: Node[], edges: Edge[]): string {
+function generateExpr(nodeId: string, nodes: Node[], edges: Edge[]): string {
   const node = nodes.find(n => n.id === nodeId)!
   const incoming = edges.filter(e => e.target === nodeId)
 
-  if (node.data.kind === 'literal') {
-    return node.data.value.toString()
+  switch (node.data.kind) {
+    case 'literal':
+      return node.data.value.toString()
+
+    case 'call': {
+      const args = incoming
+        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
+        .map(e => generateExpr(e.source, nodes, edges))
+
+      return `(${node.data.name} ${args.join(' ')})`
+    }
+
+    case 'let': {
+      const bindings = node.data.bindings.map((name: string, i: number) => {
+        const edge = incoming.find(e => e.targetHandle === `bind-${i}`)
+        if (!edge) throw new Error(`Missing binding ${name}`)
+        return `(${name} ${generateExpr(edge.source, nodes, edges)})`
+      })
+
+      const bodyEdge = incoming.find(e => e.targetHandle === 'body')
+      if (!bodyEdge) throw new Error('Missing let body')
+
+      const body = generateExpr(bodyEdge.source, nodes, edges)
+
+      return `(let (${bindings.join(' ')}) ${body})`
+    }
   }
-
-  if (node.data.kind === 'call') {
-    const args = incoming
-      .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
-      .map(e => generate(e.source, nodes, edges))
-
-    return `(${node.data.name} ${args.join(' ')})`
-  }
-
   return ''
+}
+
+function generateExprWithSpans(
+  nodeId: string,
+  nodes: Node[],
+  edges: Edge[],
+  spans: Span[]
+): string {
+  let expr = generateExpr(nodeId, nodes, edges)
+
+  for (const span of spans) {
+    const roots = spanRootNodes(span, edges)
+    if (roots.includes(nodeId)) {
+      expr = `(let ((ctx start-span "${span.name}"))
+  (begin
+    ${expr}
+    (end-span ctx)))`
+    }
+  }
+
+  return expr
+}
+
+function findRootNodes(nodes: Node[]) {
+  return nodes.filter(
+    n => n.type === 'expr' && n.data.kind === 'call'
+  )
+}
+
+function spanRootNodes(
+  span: Span,
+  edges: Edge[]
+) {
+  return span.nodeIds.filter(nodeId => {
+    const outgoing = edges.filter(e => e.source === nodeId)
+
+    // root if any outgoing edge leaves the span
+    return outgoing.length === 0 ||
+      outgoing.every(e => !span.nodeIds.includes(e.target))
+  })
+}
+
+function generateProgram(nodes: Node[], edges: Edge[], spans: Span[]) {
+  const roots = findRootNodes(nodes)
+  return roots
+    .map(r => generateExprWithSpans(r.id, nodes, edges, spans))
+    .join('\n')
 }
 
 type Span = {
@@ -139,25 +239,40 @@ function App() {
 
     const spanId = `span-${Date.now()}`
 
-    setNodes(ns => [
-      ...ns,
-      {
-        id: spanId,
-        type: 'span',
-        position: {
-          x: Math.min(...selected.map(n => n.position.x)) - 40,
-          y: Math.min(...selected.map(n => n.position.y)) - 40,
-        },
-        data: { name },
-        style: { width: 300, height: 200 },
-      },
-      ...selected.map(n => ({
-        ...n,
-        parentNode: spanId,
-        extent: 'parent' as const,
-      })),
-    ])
+    // sets the span as the parent node of the selected nodes
+    // for UI/rendering reasons
+    setNodes(ns => {
+      const spanX = Math.min(...selected.map(n => n.position.x)) - 40
+      const spanY = Math.min(...selected.map(n => n.position.y)) - 40
 
+      return [
+        // span node
+        {
+          id: spanId,
+          type: 'span',
+          position: { x: spanX, y: spanY },
+          data: { name },
+          style: { width: 300, height: 200 },
+        },
+
+        // update existing nodes
+        ...ns.map(n => {
+          if (!selected.some(s => s.id === n.id)) return n
+
+          return {
+            ...n,
+            parentNode: spanId,
+            extent: 'parent' as const,
+            position: {
+              x: n.position.x - spanX,
+              y: n.position.y - spanY,
+            },
+          }
+        }),
+      ]
+    })
+
+    // set the span data
     setSpans(s => [
       ...s,
       {
@@ -186,7 +301,7 @@ function App() {
         <Panel position="top-right">
           <button
             style={{ padding: 10, cursor: 'pointer' }}
-            onClick={() => createSpan('my-span')}
+            onClick={() => createSpan('my-span')} // todo: prompt for name or something
           >
             Create span
           </button>
@@ -194,7 +309,7 @@ function App() {
           <button
             style={{ padding: 10, cursor: 'pointer', marginLeft: 8 }}
             onClick={() => {
-              console.log(generate('4', nodes, edges))
+              console.log(generateProgram(nodes, edges, spans))
             }}
           >
             Generate
