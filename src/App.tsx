@@ -22,57 +22,76 @@ function ExprNode({ data }: any) {
       <div style={{ padding: 10, border: '1px solid white' }}>
         <div>Literal</div>
         <div>{data.value}</div>
-        <Handle type="source" position={Position.Right} />
+        {/* FLOW */}
+        <Handle
+          type="source"
+          position={Position.Top}
+          id="flow-out"
+          style={{ background: '#22d3ee' }}
+        />
+
+        {/* DATA */}
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="value"
+          style={{ background: '#4ade80' }}
+        />
       </div>
     )
   }
 
   if (data.kind === 'call') {
+    const ARG_Y_START = 5
+    const ARG_Y_STEP = 10
     return (
       <div style={{ padding: 10, border: '1px solid white' }}>
         <div>{data.name}</div>
-        <Handle type="target" position={Position.Left} id="0" />
-        <Handle type="target" position={Position.Left} id="1" />
-        <Handle type="target" position={Position.Left} id="2" />
-        <Handle type="target" position={Position.Left} id="3" />
-        <Handle type="target" position={Position.Left} id="4" />
-        <Handle type="target" position={Position.Left} id="5" />
-        <Handle type="source" position={Position.Right} />
-      </div>
-    )
-  }
+        {/* FLOW */}
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="flow-in"
+          style={{ background: '#22d3ee' }}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="flow-out"
+          style={{ background: '#22d3ee' }}
+        />
 
-  if (data.kind === 'let') {
-    return (
-      <div style={{ padding: 10, border: '1px solid white' }}>
-        <div>let</div>
-
-        {data.bindings.map((b: string, i: number) => (
+        {/* DATA */}
+        {Array.from(Array(data.n_args)).map((_, i) => (
           <Handle
             key={i}
             type="target"
             position={Position.Left}
-            id={`bind-${i}`}
+            id={`arg-${i}`}
+            style={{ top: ARG_Y_START + i * ARG_Y_STEP, background: '#4ade80' }}
           />
         ))}
-
-        <Handle type="target" position={Position.Bottom} id="body" />
-        <Handle type="source" position={Position.Right} />
+        <Handle
+          key="value"
+          type="source"
+          position={Position.Right}
+          id={`value`}
+          style={{ background: '#4ade80' }}
+        />
       </div>
     )
   }
 }
 
-type LetNodeData = {
-  kind: 'let'
-  bindings: string[]   // variable names
+type CallSpec = {
+  kind: string | 'call'
+  name: string
+  n_args: number
 }
 
-
-type ExprNodeData = {
-  kind: 'call' | 'literal' | 'let'
-  value?: number
-  name?: string
+const exprNodeData: Record<string, CallSpec> = {
+  "+": { kind: 'call', name: '+', n_args: 2 },
+  "print": { kind: 'call', name: 'print', n_args: 1 },
 }
 
 const initialNodes: Node[] = [
@@ -91,21 +110,26 @@ const initialNodes: Node[] = [
   {
     id: '3',
     position: { x: 250, y: 150 },
-    data: { kind: 'call', name: '+' },
+    data: exprNodeData['+'],
     type: 'expr',
   },
   {
     id: '4',
     position: { x: 450, y: 150 },
-    data: { kind: 'call', name: 'print' },
+    data: exprNodeData['print'],
     type: 'expr',
   },
 ];
 
+type EdgeKind = 'flow' | 'data'
+
 const initialEdges: Edge[] = [
-  { id: 'e1', source: '1', target: '3', targetHandle: '0' },
-  { id: 'e2', source: '2', target: '3', targetHandle: '1' },
-  { id: 'e3', source: '3', target: '4', targetHandle: '0' },
+  { id: 'e1', source: '1', target: '3', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
+  { id: 'e2', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
+  { id: 'e3', source: '2', target: '3', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
+  { id: 'e4', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' as EdgeKind } },
+  { id: 'e5', source: '3', target: '4', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
+  { id: 'e6', source: '3', target: '4', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
 ];
 
 const nodeTypes = {
@@ -115,7 +139,7 @@ const nodeTypes = {
 
 function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null): string {
   const node = nodes.find(n => n.id === nodeId)!
-  const incoming = edges.filter(e => e.target === nodeId)
+  const incoming_nodes = edges.filter(e => e.target === nodeId)
 
   switch (node.data.kind) {
     case 'literal': {
@@ -128,7 +152,12 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       return node.data.value.toString()
     }
     case 'call': {
-      let b = `(let ((${'p-' + node.id} (${node.data.name} ${incoming
+      let b = `(let ((${'p-' + node.id} (${node.data.name}`;
+
+      if (incoming_nodes.length === 0) {
+        // no inputs, just call the function
+        b = b + `)))`;
+      } else b = b + `${incoming_nodes
         .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!)) // TODO: we need truly separate handles
         .map(e => nodes.find(n => n.id === e.source)?.id!)
         .map(id => `p-${id}`)
@@ -155,7 +184,7 @@ function spanRootNodes(
   return span.nodeIds.filter(nodeId => {
     const outgoing = edges.filter(e => e.source === nodeId)
 
-    // root if any outgoing edge leaves the span
+    // root node of the span if no outgoing edge points to another node in the span
     return outgoing.length === 0 ||
       outgoing.every(e => !span.nodeIds.includes(e.target))
   })
@@ -307,7 +336,7 @@ function App() {
                 setNodes(ns => [...ns, {
                   id,
                   position: { x: Math.random() * 400, y: Math.random() * 400 },
-                  data: { kind: 'call', name },
+                  data: exprNodeData[name],
                   type: 'expr',
                 }])
               }}
