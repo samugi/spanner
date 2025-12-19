@@ -139,7 +139,9 @@ const nodeTypes = {
 
 function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null): string {
   const node = nodes.find(n => n.id === nodeId)!
-  const incoming_nodes = edges.filter(e => e.target === nodeId)
+  // TODO: useful for squashing lets together? i.e. in case of flow and no data this is the only connection
+  const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
+  const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
 
   switch (node.data.kind) {
     case 'literal': {
@@ -154,11 +156,13 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
     case 'call': {
       let b = `(let ((${'p-' + node.id} (${node.data.name}`;
 
-      if (incoming_nodes.length === 0) {
+      if (incoming_data.length === 0) {
         // no inputs, just call the function
         b = b + `)))`;
-      } else b = b + `${incoming_nodes
-        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!)) // TODO: we need truly separate handles
+      } else b = b + `${incoming_data
+        // sort works because arg-0, arg-1, ... are lexicographically ordered
+        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
+        // we name the args as p-<node id> to match let bindings
         .map(e => nodes.find(n => n.id === e.source)?.id!)
         .map(id => `p-${id}`)
         .join(' ')})))`;
