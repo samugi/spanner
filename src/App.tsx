@@ -98,24 +98,12 @@ const initialNodes: Node[] = [
     data: { kind: 'call', name: 'print' },
     type: 'expr',
   },
-  {
-    id: '5',
-    position: { x: 350, y: 150 },
-    type: 'expr',
-    data: {
-      kind: 'let',
-      bindings: ['x', 'y'],
-    },
-  },
 ];
 
 const initialEdges: Edge[] = [
   { id: 'e1', source: '1', target: '3', targetHandle: '0' },
   { id: 'e2', source: '2', target: '3', targetHandle: '1' },
-  { id: 'e4', source: '1', target: '5', targetHandle: 'bind-0' },
-  { id: 'e5', source: '2', target: '5', targetHandle: 'bind-1' },
-  { id: 'e3', source: '3', target: '5', targetHandle: 'body' },
-  { id: 'e6', source: '5', target: '4', targetHandle: '0' },
+  { id: 'e3', source: '3', target: '4', targetHandle: '0' },
 ];
 
 const nodeTypes = {
@@ -123,35 +111,36 @@ const nodeTypes = {
   span: SpanNode,
 }
 
-function generateExpr(nodeId: string, nodes: Node[], edges: Edge[]): string {
+function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null): string {
   const node = nodes.find(n => n.id === nodeId)!
   const incoming = edges.filter(e => e.target === nodeId)
 
   switch (node.data.kind) {
-    case 'literal':
+    case 'literal': {
+      // literal has no inputs
+      // can be a simple let that wraps previous
+      if (previous) {
+        let param_id = `p-${node.id}`
+        return `(let ((${param_id} ${node.data.value})) ${previous})`
+      }
       return node.data.value.toString()
-
-    case 'call': {
-      const args = incoming
-        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
-        .map(e => generateExpr(e.source, nodes, edges))
-
-      return `(${node.data.name} ${args.join(' ')})`
     }
+    case 'call': {
+      let b = `(let ((${'p-' + node.id} (${node.data.name} ${incoming
+        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!)) // TODO: we need truly separate handles
+        .map(e => nodes.find(n => n.id === e.source)?.id!)
+        .map(id => `p-${id}`)
+        .join(' ')})))`;
 
-    case 'let': {
-      const bindings = node.data.bindings.map((name: string, i: number) => {
-        const edge = incoming.find(e => e.targetHandle === `bind-${i}`)
-        if (!edge) throw new Error(`Missing binding ${name}`)
-        return `(${name} ${generateExpr(edge.source, nodes, edges)})`
-      })
-
-      const bodyEdge = incoming.find(e => e.targetHandle === 'body')
-      if (!bodyEdge) throw new Error('Missing let body')
-
-      const body = generateExpr(bodyEdge.source, nodes, edges)
-
-      return `(let (${bindings.join(' ')}) ${body})`
+      if (previous) {
+        b = b + ` ${previous} )`
+      } else {
+        b = b + ` (+ 1 1) )` // TODO: noop
+      }
+      return b;
+    }
+    default: {
+      throw new Error(`Unknown node kind: ${node.data.kind}`)
     }
   }
   return ''
@@ -178,12 +167,6 @@ function generateExprWithSpans(
   return expr
 }
 
-function findRootNodes(nodes: Node[]) {
-  return nodes.filter(
-    n => n.type === 'expr' && n.data.kind === 'call'
-  )
-}
-
 function spanRootNodes(
   span: Span,
   edges: Edge[]
@@ -197,11 +180,23 @@ function spanRootNodes(
   })
 }
 
-function generateProgram(nodes: Node[], edges: Edge[], spans: Span[]) {
-  const roots = findRootNodes(nodes)
-  return roots
-    .map(r => generateExprWithSpans(r.id, nodes, edges, spans))
-    .join('\n')
+function generateProgram(nodes: Node[], edges: Edge[], spans: Span[]): string {
+  const visited = new Set<string>();
+  let result: string | null = null;
+
+  while (visited.size < nodes.length) {
+    for (const n of nodes) {
+      // it's time to visit if we visited all its children
+      const outgoing = edges.filter(e => e.source === n.id)
+      if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id)) {
+        visited.add(n.id);
+        result = generateExpr(n.id, nodes, edges, result);
+        break;
+      }
+    }
+  }
+
+  return result || '';
 }
 
 type Span = {
