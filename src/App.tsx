@@ -153,23 +153,23 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       // can be a simple let that wraps previous
       if (previous) {
         let param_id = `p-${node.id}`
-        return `(let ((${param_id} ${node.data.value})) ${previous})`
+        return `(let (( ${param_id} ${node.data.value} )) ${previous} )`
       }
       return node.data.value.toString()
     }
     case 'call': {
-      let b = `(let ((${'p-' + node.id} (${node.data.name} `;
+      let b = `(let (( ${'p-' + node.id} (${node.data.name} `;
 
       if (incoming_data.length === 0) {
         // no inputs, just call the function
-        b = b + `)))`;
+        b = b + ` )))`;
       } else b = b + `${incoming_data
         // sort works because arg-0, arg-1, ... are lexicographically ordered
         .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
         // we name the args as p-<node id> to match let bindings
         .map(e => nodes.find(n => n.id === e.source)?.id!)
         .map(id => `p-${id}`)
-        .join(' ')})))`;
+        .join(' ')} )))`;
 
       if (previous) {
         b = b + ` ${previous} )`
