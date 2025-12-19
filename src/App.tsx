@@ -8,11 +8,13 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Panel,
-  SelectionMode
+  SelectionMode,
+  addEdge,
+  type Connection
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 function ExprNode({ data }: any) {
   if (data.kind === 'literal') {
@@ -135,7 +137,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       if (previous) {
         b = b + ` ${previous} )`
       } else {
-        b = b + ` (+ 1 1) )` // TODO: noop
+        b = b + ` p-${node.id} )` // TODO: noop
       }
       return b;
     }
@@ -143,30 +145,9 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       throw new Error(`Unknown node kind: ${node.data.kind}`)
     }
   }
-  return ''
 }
 
-function generateExprWithSpans(
-  nodeId: string,
-  nodes: Node[],
-  edges: Edge[],
-  spans: Span[]
-): string {
-  let expr = generateExpr(nodeId, nodes, edges)
-
-  for (const span of spans) {
-    const roots = spanRootNodes(span, edges)
-    if (roots.includes(nodeId)) {
-      expr = `(let ((ctx start-span "${span.name}"))
-  (begin
-    ${expr}
-    (end-span ctx)))`
-    }
-  }
-
-  return expr
-}
-
+// TODO: check logic
 function spanRootNodes(
   span: Span,
   edges: Edge[]
@@ -223,6 +204,11 @@ function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [spans, setSpans] = useState<Span[]>([]);
+
+  const onConnect = useCallback(
+    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+    [setEdges]
+  );
 
   function createSpan(name: string) {
     const selected = nodes.filter(
@@ -284,6 +270,7 @@ function App() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         nodeTypes={nodeTypes}
         selectionOnDrag={true}
         selectionMode={SelectionMode.Partial}
@@ -292,28 +279,77 @@ function App() {
         <Background />
         <Controls />
 
-        <Panel position="top-right">
-          <button
-            style={{ padding: 10, cursor: 'pointer' }}
-            onClick={() => createSpan('my-span')} // todo: prompt for name or something
-          >
-            Create span
-          </button>
+        <Panel position="top-left">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => {
+                const value = prompt('Enter literal value:')
+                if (value === null) return
+                const id = `${Date.now()}`
+                setNodes(ns => [...ns, {
+                  id,
+                  position: { x: Math.random() * 400, y: Math.random() * 400 },
+                  data: { kind: 'literal', value: Number(value) },
+                  type: 'expr',
+                }])
+              }}
+            >
+              Add Literal
+            </button>
 
-          <button
-            style={{ padding: 10, cursor: 'pointer', marginLeft: 8 }}
-            onClick={() => {
-              console.log(generateProgram(nodes, edges, spans, new Set<string>(), null))
-            }}
-          >
-            Generate
-          </button>
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => {
+                const name = prompt('Enter function name (e.g., +, -, *, print):')
+                if (!name) return
+                const id = `${Date.now()}`
+                setNodes(ns => [...ns, {
+                  id,
+                  position: { x: Math.random() * 400, y: Math.random() * 400 },
+                  data: { kind: 'call', name },
+                  type: 'expr',
+                }])
+              }}
+            >
+              Add Call
+            </button>
+          </div>
+        </Panel>
+
+        <Panel position="top-right">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => createSpan('my-span')}
+            >
+              Create span
+            </button>
+
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => {
+                console.log(generateProgram(nodes, edges, spans, new Set<string>(), null))
+              }}
+            >
+              Generate
+            </button>
+
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => {
+                setNodes([])
+                setEdges([])
+                setSpans([])
+              }}
+            >
+              Clear All
+            </button>
+          </div>
         </Panel>
       </ReactFlow>
-    </div >
+    </div>
   )
 }
 
-
 export default App
-
