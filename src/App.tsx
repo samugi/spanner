@@ -180,23 +180,22 @@ function spanRootNodes(
   })
 }
 
-function generateProgram(nodes: Node[], edges: Edge[], spans: Span[]): string {
-  const visited = new Set<string>();
-  let result: string | null = null;
+function generateProgram(nodes: Node[], edges: Edge[], spans: Span[], visited: Set<string>, result: string | null): string {
+  if (visited.size === nodes.length) {
+    return result || '';
+  }
 
-  while (visited.size < nodes.length) {
-    for (const n of nodes) {
-      // it's time to visit if we visited all its children
-      const outgoing = edges.filter(e => e.source === n.id)
-      if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id)) {
-        visited.add(n.id);
-        result = generateExpr(n.id, nodes, edges, result);
-        break;
-      }
+  for (const n of nodes) {
+    // visit all the children of the current node n
+    const outgoing = edges.filter(e => e.source === n.id)
+    if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id)) {
+      visited.add(n.id);
+      result = generateExpr(n.id, nodes, edges, result);
+      break;
     }
   }
 
-  return result || '';
+  return generateProgram(nodes, edges, spans, visited, result);
 }
 
 type Span = {
@@ -304,7 +303,7 @@ function App() {
           <button
             style={{ padding: 10, cursor: 'pointer', marginLeft: 8 }}
             onClick={() => {
-              console.log(generateProgram(nodes, edges, spans))
+              console.log(generateProgram(nodes, edges, spans, new Set<string>(), null))
             }}
           >
             Generate
