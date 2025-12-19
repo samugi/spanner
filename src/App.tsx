@@ -119,17 +119,21 @@ const initialNodes: Node[] = [
     data: exprNodeData['print'],
     type: 'expr',
   },
+  {
+    id: '5',
+    position: { x: 560, y: 150 },
+    data: exprNodeData['print'],
+    type: 'expr',
+  },
 ];
 
 type EdgeKind = 'flow' | 'data'
 
 const initialEdges: Edge[] = [
-  { id: 'e1', source: '1', target: '3', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
-  { id: 'e2', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
-  { id: 'e3', source: '2', target: '3', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
-  { id: 'e4', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' as EdgeKind } },
-  { id: 'e5', source: '3', target: '4', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
-  { id: 'e6', source: '3', target: '4', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
+  { id: 'e1', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
+  { id: 'e2', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' as EdgeKind } },
+  { id: 'e3', source: '3', target: '4', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
+  { id: 'e4', source: '4', target: '5', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
 ];
 
 const nodeTypes = {
@@ -154,7 +158,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       return node.data.value.toString()
     }
     case 'call': {
-      let b = `(let ((${'p-' + node.id} (${node.data.name}`;
+      let b = `(let ((${'p-' + node.id} (${node.data.name} `;
 
       if (incoming_data.length === 0) {
         // no inputs, just call the function
@@ -239,7 +243,23 @@ function App() {
   const [spans, setSpans] = useState<Span[]>([]);
 
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+    (connection: Connection) => {
+      const kind: EdgeKind =
+        connection.sourceHandle?.startsWith('flow') ||
+          connection.targetHandle?.startsWith('flow')
+          ? 'flow'
+          : 'data'
+
+      setEdges(eds =>
+        addEdge(
+          {
+            ...connection,
+            data: { kind },
+          },
+          eds
+        )
+      )
+    },
     [setEdges]
   );
 
