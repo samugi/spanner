@@ -151,6 +151,8 @@ const nodeTypes = {
   span: SpanNode,
 }
 
+
+
 // Generate expression from a node
 // this depends on other nodes and edges as well because
 // depending on the node's inputs/outputs it may have to be generated differently (with/without lets, etc)
@@ -200,9 +202,13 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       // Span wrapping:
       // if all nodes in the span have been visited it means we are at the root of the span
       if (nodeSpan && nodeSpan.nodeIds.every(id => visited.has(id))) {
+        // if the span has a parent, we need to pass the parent context
+        let parentSpan = nodes.find(n => n.parentId === nodeSpan.id && n.type === 'span')
+        let cx = parentSpan ? `cx-${parentSpan.id}` : 'none'
+
         // wrap the call_expr in the span
         let cxId = `cx-${nodeSpan.id}`
-        call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}")))
+        call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}" "${cx}")))
   (begin
     ${call_expr}
     (end-span ${cxId})
@@ -298,26 +304,84 @@ function App() {
 
     const spanId = `span-${Date.now()}`
 
+    // set the span data
+    setSpans(s => [
+      ...s,
+      {
+        id: spanId,
+        name,
+        nodeIds: selected.map(n => n.id),
+      },
+    ])
+
     // sets the span as the parent node of the selected nodes
     // for UI/rendering reasons
     setNodes(ns => {
       const spanX = Math.min(...selected.map(n => n.position.x)) - 40
       const spanY = Math.min(...selected.map(n => n.position.y)) - 40
 
-      return [
-        // span node
-        {
-          id: spanId,
-          type: 'span',
-          position: { x: spanX, y: spanY },
-          data: { name },
-          style: { width: 300, height: 200 },
-        },
+      let spanNode = {
+        id: spanId,
+        type: 'span',
+        position: { x: spanX, y: spanY },
+        data: { name },
+        style: { width: 300, height: 200 },
+      }
+
+      let nodes = [
+        // add the span node
+        spanNode,
 
         // update existing nodes
         ...ns.map(n => {
-          if (!selected.some(s => s.id === n.id)) return n
+          // for all the non selected, update the span ones
+          // so that they become children of the new span if their nodes
+          // are consequence of nodes in the new span
+          if (!selected.some(s => s.id === n.id)) {
 
+            // check if it's a span node
+            if (n.type === 'span') {
+              // if it is a span node, check if it is a child span of the new span
+              // a child span is a span that contains node that are executed as a consequence of
+              // any of the nodes in the new span
+              // i.e. we need to traverse the edges from the selected nodes to see if we reach any node in the span
+              const selectedIds = new Set(selected.map(s => s.id))
+              const spanNodeIds = spans.flatMap(s => s.nodeIds) || [] // all nodes in other spans
+
+              let foundParentSpan = false
+              for (const sid of selectedIds) {
+                const toVisit = [sid]
+                const visited = new Set<string>()
+                while (toVisit.length > 0) {
+                  const current = toVisit.pop()!
+                  if (spanNodeIds.includes(current)) {
+                    foundParentSpan = true
+                    break
+                  }
+                  visited.add(current)
+                  const incoming = edges.filter(e => e.target === current)
+                  for (const o of incoming) {
+                    if (!visited.has(o.source)) {
+                      toVisit.push(o.source)
+                    }
+                  }
+                }
+                if (foundParentSpan) break
+              }
+
+              if (foundParentSpan) {
+                // move the child span inside the new span
+                return {
+                  ...n,
+                  parentId: spanId,
+                }
+              }
+            }
+
+            return n
+          }
+
+          // for all the selected, move them inside the new span
           return {
             ...n,
             parentId: spanId,
@@ -328,18 +392,9 @@ function App() {
             },
           }
         }),
-      ]
+      ];
+      return nodes
     })
-
-    // set the span data
-    setSpans(s => [
-      ...s,
-      {
-        id: spanId,
-        name,
-        nodeIds: selected.map(n => n.id),
-      },
-    ])
   }
 
   return (
