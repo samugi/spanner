@@ -16,6 +16,7 @@ import 'reactflow/dist/style.css'
 
 import { useState, useCallback } from 'react'
 
+// Node rendering
 function ExprNode({ data }: any) {
   if (data.kind === 'literal') {
     return (
@@ -83,17 +84,20 @@ function ExprNode({ data }: any) {
   }
 }
 
+// Call nodes data spec
 type CallSpec = {
   kind: string | 'call'
   name: string
   n_args: number
 }
 
+// expression nodes data
 const exprNodeData: Record<string, CallSpec> = {
   "+": { kind: 'call', name: '+', n_args: 2 },
   "print": { kind: 'call', name: 'print', n_args: 1 },
 }
 
+// initial nodes and edges
 const initialNodes: Node[] = [
   {
     id: '1',
@@ -127,8 +131,10 @@ const initialNodes: Node[] = [
   },
 ];
 
+// edge kinds
 type EdgeKind = 'flow' | 'data'
 
+// initial edges
 const initialEdges: Edge[] = [
   { id: 'e1', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' as EdgeKind } },
   { id: 'e2', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' as EdgeKind } },
@@ -136,12 +142,18 @@ const initialEdges: Edge[] = [
   { id: 'e4', source: '4', target: '5', sourceHandle: 'flow-out', targetHandle: 'flow-in', data: { kind: 'flow' as EdgeKind } },
 ];
 
+// node types mapping
 const nodeTypes = {
   expr: ExprNode,
   span: SpanNode,
 }
 
-function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null): string {
+// Generate expression from a node
+// this depends on other nodes and edges as well because
+// depending on the node's inputs/outputs it may have to be generated differently (with/without lets, etc)
+//
+// This is also where we wrap calls in spans
+function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, spans: Span[], nodeSpans: Span[], visited: Set<string>): string {
   const node = nodes.find(n => n.id === nodeId)!
   // TODO: useful for squashing lets together? i.e. in case of flow and no data this is the only connection
   const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
@@ -158,44 +170,51 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       return node.data.value.toString()
     }
     case 'call': {
-      let b = `(let (( ${'p-' + node.id} (${node.data.name} `;
+      let call_expr = `(let (( ${'p-' + node.id} (${node.data.name} `;
 
+      // if the node has no input, we can close the let body without passing
+      // any arguments, otherwise we have to pass them
       if (incoming_data.length === 0) {
-        // no inputs, just call the function
-        b = b + ` )))`;
-      } else b = b + `${incoming_data
-        // sort works because arg-0, arg-1, ... are lexicographically ordered
-        .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
-        // we name the args as p-<node id> to match let bindings
-        .map(e => nodes.find(n => n.id === e.source)?.id!)
-        .map(id => `p-${id}`)
-        .join(' ')} )))`;
+        call_expr = call_expr + ` )))`;
+
+      } else {
+        call_expr = call_expr + `${incoming_data
+          // sort works because arg-0, arg-1, ... are lexicographically ordered
+          .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
+          // we name the args as p-<node id> to match let bindings
+          .map(e => nodes.find(n => n.id === e.source)?.id!)
+          .map(id => `p-${id}`)
+          .join(' ')} )))`;
+      }
 
       if (previous) {
-        b = b + ` ${previous} )`
+        call_expr = call_expr + ` ${previous} )`
       } else {
-        b = b + ` p-${node.id} )` // TODO: noop
+        call_expr = call_expr + ` p-${node.id} )` // TODO: noop
       }
-      return b;
+
+      for (const span of nodeSpans) {
+        // if all nodes in the span have been visited
+        // it means we are at the root of the span
+        if (span.nodeIds.every(id => visited.has(id))) {
+          // wrap the call_expr in the span
+          let cxId = `cx-${span.id}`
+          call_expr = `(let ((${cxId} (start-span "${span.name}")))
+  (begin
+    ${call_expr}
+    (end-span ${cxId})
+  )
+)`
+          break;
+        }
+      }
+
+      return call_expr;
     }
     default: {
       throw new Error(`Unknown node kind: ${node.data.kind}`)
     }
   }
-}
-
-// TODO: check logic
-function spanRootNodes(
-  span: Span,
-  edges: Edge[]
-) {
-  return span.nodeIds.filter(nodeId => {
-    const outgoing = edges.filter(e => e.source === nodeId)
-
-    // root node of the span if no outgoing edge points to another node in the span
-    return outgoing.length === 0 ||
-      outgoing.every(e => !span.nodeIds.includes(e.target))
-  })
 }
 
 function generateProgram(nodes: Node[], edges: Edge[], spans: Span[], visited: Set<string>, result: string | null): string {
@@ -206,9 +225,14 @@ function generateProgram(nodes: Node[], edges: Edge[], spans: Span[], visited: S
   for (const n of nodes) {
     // visit all the children of the current node n
     const outgoing = edges.filter(e => e.source === n.id)
-    if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id)) {
+    if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id) && n.type === 'expr') {
       visited.add(n.id);
-      result = generateExpr(n.id, nodes, edges, result);
+      let nodeSpans = n.parentId ? spans.filter(s => s.id === n.parentId) : null;
+      result = generateExpr(n.id, nodes, edges, result, spans, nodeSpans || [], visited);
+      break;
+    } else if (n.type !== 'expr' && !visited.has(n.id)) {
+      // span nodes are just containers, we can skip them
+      visited.add(n.id);
       break;
     }
   }
@@ -294,7 +318,7 @@ function App() {
 
           return {
             ...n,
-            parentNode: spanId,
+            parentId: spanId,
             extent: 'parent' as const,
             position: {
               x: n.position.x - spanX,
