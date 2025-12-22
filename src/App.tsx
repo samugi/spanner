@@ -16,6 +16,9 @@ import 'reactflow/dist/style.css'
 
 import { useState, useCallback } from 'react'
 
+// In this implementation:
+// 1. Nodes cannot be in more than one span
+
 // Node rendering
 function ExprNode({ data }: any) {
   if (data.kind === 'literal') {
@@ -153,7 +156,7 @@ const nodeTypes = {
 // depending on the node's inputs/outputs it may have to be generated differently (with/without lets, etc)
 //
 // This is also where we wrap calls in spans
-function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, spans: Span[], nodeSpans: Span[], visited: Set<string>): string {
+function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, nodeSpan: Span | null, visited: Set<string>): string {
   const node = nodes.find(n => n.id === nodeId)!
   // TODO: useful for squashing lets together? i.e. in case of flow and no data this is the only connection
   const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
@@ -193,20 +196,18 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
         call_expr = call_expr + ` p-${node.id} )` // TODO: noop
       }
 
-      for (const span of nodeSpans) {
-        // if all nodes in the span have been visited
-        // it means we are at the root of the span
-        if (span.nodeIds.every(id => visited.has(id))) {
-          // wrap the call_expr in the span
-          let cxId = `cx-${span.id}`
-          call_expr = `(let ((${cxId} (start-span "${span.name}")))
+
+      // Span wrapping:
+      // if all nodes in the span have been visited it means we are at the root of the span
+      if (nodeSpan && nodeSpan.nodeIds.every(id => visited.has(id))) {
+        // wrap the call_expr in the span
+        let cxId = `cx-${nodeSpan.id}`
+        call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}")))
   (begin
     ${call_expr}
     (end-span ${cxId})
   )
 )`
-          break;
-        }
       }
 
       return call_expr;
@@ -215,6 +216,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
       throw new Error(`Unknown node kind: ${node.data.kind}`)
     }
   }
+  return '';
 }
 
 function generateProgram(nodes: Node[], edges: Edge[], spans: Span[], visited: Set<string>, result: string | null): string {
@@ -227,8 +229,8 @@ function generateProgram(nodes: Node[], edges: Edge[], spans: Span[], visited: S
     const outgoing = edges.filter(e => e.source === n.id)
     if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id) && n.type === 'expr') {
       visited.add(n.id);
-      let nodeSpans = n.parentId ? spans.filter(s => s.id === n.parentId) : null;
-      result = generateExpr(n.id, nodes, edges, result, spans, nodeSpans || [], visited);
+      let nodeSpan = n.parentId ? spans.find(s => s.id === n.parentId) : null;
+      result = generateExpr(n.id, nodes, edges, result, nodeSpan || null, visited);
       break;
     } else if (n.type !== 'expr' && !visited.has(n.id)) {
       // span nodes are just containers, we can skip them
