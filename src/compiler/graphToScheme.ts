@@ -1,10 +1,5 @@
 import type { Node, Edge } from 'reactflow'
-
-export type Span = {
-    id: string
-    name: string
-    nodeIds: string[]
-}
+import type { Span } from './types'
 
 export function generateProgram(
     nodes: Node[],
@@ -64,7 +59,11 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
             // if all nodes in the span have been visited it means we are at the root of the span
             if (nodeSpan && nodeSpan.nodeIds.every(id => visited.has(id))) {
                 // if the span has a parent, we need to pass the parent context
-                let parentSpan = nodes.find(n => n.parentId === nodeSpan.id && n.type === 'span')
+                let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
+                if (spanNode == undefined) {
+                    throw new Error(`Span node with id ${nodeSpan.id} not found`);
+                }
+                let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
                 let cx = parentSpan ? `cx-${parentSpan.id}` : 'none'
 
                 // wrap the call_expr in the span

@@ -15,7 +15,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 
 import { useState, useCallback } from 'react'
-import { type Span, generateProgram } from './compiler/graphToScheme'
+import { generateProgram } from './compiler/graphToScheme'
+import type { Span } from './compiler/types'
+import { computeNodesAfterCreateSpan } from './compiler/spans'
 
 // In this implementation:
 // 1. Nodes cannot be in more than one span
@@ -98,7 +100,7 @@ type CallSpec = {
 // expression nodes data
 const exprNodeData: Record<string, CallSpec> = {
   "+": { kind: 'call', name: '+', n_args: 2 },
-  "print": { kind: 'call', name: 'print', n_args: 1 },
+  "display": { kind: 'call', name: 'display', n_args: 1 },
 }
 
 // initial nodes and edges
@@ -124,13 +126,13 @@ const initialNodes: Node[] = [
   {
     id: '4',
     position: { x: 450, y: 150 },
-    data: exprNodeData['print'],
+    data: exprNodeData['display'],
     type: 'expr',
   },
   {
     id: '5',
     position: { x: 560, y: 150 },
-    data: exprNodeData['print'],
+    data: exprNodeData['display'],
     type: 'expr',
   },
 ];
@@ -215,85 +217,7 @@ function App() {
 
     // sets the span as the parent node of the selected nodes
     // for UI/rendering reasons
-    setNodes(ns => {
-      const spanX = Math.min(...selected.map(n => n.position.x)) - 40
-      const spanY = Math.min(...selected.map(n => n.position.y)) - 40
-
-      let spanNode = {
-        id: spanId,
-        type: 'span',
-        position: { x: spanX, y: spanY },
-        data: { name },
-        style: { width: 300, height: 200 },
-      }
-
-      let nodes = [
-        // add the span node
-        spanNode,
-
-        // update existing nodes
-        ...ns.map(n => {
-          // for all the non selected, update the span ones
-          // so that they become children of the new span if their nodes
-          // are consequence of nodes in the new span
-          if (!selected.some(s => s.id === n.id)) {
-
-            // check if it's a span node
-            if (n.type === 'span') {
-              // if it is a span node, check if it is a child span of the new span
-              // a child span is a span that contains node that are executed as a consequence of
-              // any of the nodes in the new span
-              // i.e. we need to traverse the edges from the selected nodes to see if we reach any node in the span
-              const selectedIds = new Set(selected.map(s => s.id))
-              const spanNodeIds = spans.flatMap(s => s.nodeIds) || [] // all nodes in other spans
-
-              let foundParentSpan = false
-              for (const sid of selectedIds) {
-                const toVisit = [sid]
-                const visited = new Set<string>()
-                while (toVisit.length > 0) {
-                  const current = toVisit.pop()!
-                  if (spanNodeIds.includes(current)) {
-                    foundParentSpan = true
-                    break
-                  }
-                  visited.add(current)
-                  const incoming = edges.filter(e => e.target === current)
-                  for (const o of incoming) {
-                    if (!visited.has(o.source)) {
-                      toVisit.push(o.source)
-                    }
-                  }
-                }
-                if (foundParentSpan) break
-              }
-
-              if (foundParentSpan) {
-                // move the child span inside the new span
-                return {
-                  ...n,
-                  parentId: spanId,
-                }
-              }
-            }
-
-            return n
-          }
-
-          // for all the selected, move them inside the new span
-          return {
-            ...n,
-            parentId: spanId,
-            extent: 'parent' as const,
-            position: {
-              x: n.position.x - spanX,
-              y: n.position.y - spanY,
-            },
-          }
-        }),
-      ];
-      return nodes
-    })
+    setNodes(ns => computeNodesAfterCreateSpan(ns, selected, spans, edges, spanId, name))
   }
 
   return (
@@ -334,7 +258,7 @@ function App() {
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                const name = prompt('Enter function name (e.g., +, -, *, print):')
+                const name = prompt('Enter function name (e.g., +, -, *, display):')
                 if (!name) return
                 const id = `${Date.now()}`
                 setNodes(ns => [...ns, {
