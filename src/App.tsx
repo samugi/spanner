@@ -92,7 +92,7 @@ function App() {
                 setNodes(ns => [...ns, {
                   id,
                   position: { x: Math.random() * 400, y: Math.random() * 400 },
-                  data: { kind: 'literal', value: Number(value), name: `Literal ${value}` },
+                  data: { kind: 'literal', value: value, name: `Literal ${value}` },
                   type: 'expr',
                 }])
               }}
