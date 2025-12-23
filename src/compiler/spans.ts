@@ -1,5 +1,4 @@
 import type { Node, Edge } from 'reactflow'
-import type { Span } from './types'
 
 // whether any node in targetIds depends on any node in sourceIds
 function dependsOn(
@@ -28,7 +27,6 @@ function dependsOn(
 export function computeNodesAfterCreateSpan(
     ns: Node[],
     selected: Node[],
-    spans: Span[],
     edges: Edge[],
     newSpanId: string,
     name: string
@@ -39,14 +37,14 @@ export function computeNodesAfterCreateSpan(
     const spanY = Math.min(...selected.map(n => n.position.y)) - 40
 
     // find the parent span of the new span, if any
-    const parentSpan = spans.find(span =>
-        dependsOn(new Set(span.nodeIds), selectedIds, edges)
+    const parentSpan = ns.find(node => node.type === 'span' &&
+        dependsOn(new Set(node.data.nodeIds), selectedIds, edges)
     )
 
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
-        spans
-            .filter(s => dependsOn(selectedIds, new Set(s.nodeIds), edges))
+        ns
+            .filter(s => s.type === 'span' && dependsOn(selectedIds, new Set(s.data.nodeIds), edges))
             .map(s => s.id)
     )
 
@@ -55,7 +53,7 @@ export function computeNodesAfterCreateSpan(
         type: 'span',
         position: { x: spanX, y: spanY },
         parentId: parentSpan?.id,
-        data: { name },
+        data: { name: name, nodeIds: selected.map(n => n.id) },
         style: { width: 300, height: 200 },
     }
 

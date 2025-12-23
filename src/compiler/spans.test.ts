@@ -2,7 +2,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Edge, Node } from 'reactflow'
 import { computeNodesAfterCreateSpan } from './spans'
-import type { Span } from './types'
 
 describe('computeNodesAfterCreateSpan', () => {
 
@@ -17,7 +16,6 @@ describe('computeNodesAfterCreateSpan', () => {
         const result = computeNodesAfterCreateSpan(
             nodes,
             selected,
-            [],
             [],
             'span-1',
             'test'
@@ -38,7 +36,6 @@ describe('computeNodesAfterCreateSpan', () => {
             nodes,
             [nodes[0]],
             [],
-            [],
             'span-1',
             'test'
         )
@@ -56,7 +53,6 @@ describe('computeNodesAfterCreateSpan', () => {
             nodes,
             nodes,
             [],
-            [],
             'span-1',
             'test'
         )
@@ -70,13 +66,8 @@ describe('computeNodesAfterCreateSpan', () => {
             { id: 'a', type: 'expr', position: { x: 0, y: 0 } },
             { id: 'b', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old' },
             { id: 'c', type: 'expr', position: { x: 0, y: 0 } },
-            { id: 'span-old', type: 'span', position: { x: 0, y: 0 } },
+            { id: 'span-old', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old', nodeIds: ['b'] } },
         ] as Node[]
-
-        const spans: Span[] = [
-            { id: 'span-old', name: 'old', nodeIds: ['b'] },
-            { id: 'span-new', name: 'new', nodeIds: ['a'] },
-        ]
 
         const edges: Edge[] = [
             { id: 'e1', source: 'b', target: 'a' },
@@ -86,7 +77,6 @@ describe('computeNodesAfterCreateSpan', () => {
         const result = computeNodesAfterCreateSpan(
             nodes,
             [nodes[0]], // selecting `a`
-            spans,
             edges,
             'span-new',
             'new'

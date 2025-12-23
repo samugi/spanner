@@ -1,12 +1,10 @@
 import type { Node, Edge } from 'reactflow'
-import type { Span } from './types'
 
 export function generateProgram(
     nodes: Node[],
     edges: Edge[],
-    spans: Span[],
 ): string {
-    return generateProgramInternal(nodes, edges, spans, new Set(), null)
+    return generateProgramInternal(nodes, edges, new Set(), null)
 }
 
 // Generate expression from a node
@@ -14,7 +12,7 @@ export function generateProgram(
 // depending on the node's inputs/outputs it may have to be generated differently (with/without lets, etc)
 //
 // This is also where we wrap calls in spans
-function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, nodeSpan: Span | null, visited: Set<string>): string {
+function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, nodeSpan: Node | null, visited: Set<string>): string {
     const node = nodes.find(n => n.id === nodeId)!
     // TODO: useful for squashing lets together? i.e. in case of flow and no data this is the only connection
     const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
@@ -57,7 +55,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
             // Span wrapping:
             // if all nodes in the span have been visited it means we are at the root of the span
-            if (nodeSpan && nodeSpan.nodeIds.every(id => visited.has(id))) {
+            if (nodeSpan && nodeSpan.data.nodeIds.every((id: string) => visited.has(id))) {
                 // if the span has a parent, we need to pass the parent context
                 let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
                 if (spanNode == undefined) {
@@ -68,7 +66,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
                 // wrap the call_expr in the span
                 let cxId = `cx-${nodeSpan.id}`
-                call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}" ${cx})))
+                call_expr = `(let ((${cxId} (start-span "${nodeSpan.data.name}" ${cx})))
   (begin
     ${call_expr}
     (end-span ${cxId})
@@ -85,7 +83,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
     return '';
 }
 
-function generateProgramInternal(nodes: Node[], edges: Edge[], spans: Span[], visited: Set<string>, result: string | null): string {
+function generateProgramInternal(nodes: Node[], edges: Edge[], visited: Set<string>, result: string | null): string {
     if (visited.size === nodes.length) {
         return result || '';
     }
@@ -95,8 +93,8 @@ function generateProgramInternal(nodes: Node[], edges: Edge[], spans: Span[], vi
         const outgoing = edges.filter(e => e.source === n.id)
         if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id) && n.type === 'expr') {
             visited.add(n.id);
-            let nodeSpan = n.parentId ? spans.find(s => s.id === n.parentId) : null;
-            result = generateExpr(n.id, nodes, edges, result, nodeSpan || null, visited);
+            let spanNode = n.parentId ? nodes.find(s => s.type === 'span' && s.id === n.parentId) : null;
+            result = generateExpr(n.id, nodes, edges, result, spanNode || null, visited);
             break;
         } else if (n.type !== 'expr' && !visited.has(n.id)) {
             // span nodes are just containers, we can skip them
@@ -105,5 +103,5 @@ function generateProgramInternal(nodes: Node[], edges: Edge[], spans: Span[], vi
         }
     }
 
-    return generateProgramInternal(nodes, edges, spans, visited, result);
+    return generateProgramInternal(nodes, edges, visited, result);
 }

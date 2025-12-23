@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Node, Edge } from 'reactflow'
 import { generateProgram } from './graphToScheme'
-import type { Span } from './types'
 
 function normalizeScheme(code: string): string {
     return code
@@ -34,9 +33,7 @@ describe('graph → scheme compiler', () => {
             { id: 'e2', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
         ]
 
-        const spans: Span[] = []
-
-        const program = generateProgram(nodes, edges, spans)
+        const program = generateProgram(nodes, edges)
 
         expect(program).toContain('(let (( p-2 2 )) (let (( p-1 1 )) (let (( p-3 (+ p-1 p-2 ))) p-3 ) ) )')
     })
@@ -45,18 +42,14 @@ describe('graph → scheme compiler', () => {
         const nodes: Node[] = [
             { id: '1', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
             { id: '2', type: 'expr', data: { kind: 'call', name: 'display', n_args: 1 }, position: { x: 0, y: 0 }, parentId: 'span-1' },
-            { id: 'span-1', type: 'span', data: {}, position: { x: 0, y: 0 } },
+            { id: 'span-1', type: 'span', data: { name: 'my-span', nodeIds: ['2'] }, position: { x: 0, y: 0 } },
         ]
 
         const edges: Edge[] = [
             { id: 'e1', source: '1', target: '2', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
         ]
 
-        const spans: Span[] = [
-            { id: 'span-1', name: 'my-span', nodeIds: ['2'] },
-        ]
-
-        const program = generateProgram(nodes, edges, spans)
+        const program = generateProgram(nodes, edges)
 
         expect(program).toContain('start-span "my-span"')
         expect(program).toContain('end-span')
@@ -102,13 +95,13 @@ describe('generateProgram – spans + dataflow', () => {
                 id: 'span-sum',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: {},
+                data: { name: 'sum-span', nodeIds: ['sum'] },
             },
             {
                 id: 'span-display',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: {},
+                data: { name: 'display-span', nodeIds: ['display'] },
                 parentId: 'span-sum',
             }
         ]
@@ -161,23 +154,9 @@ describe('generateProgram – spans + dataflow', () => {
             },
         ]
 
-        const spans: Span[] = [
-            {
-                id: 'span-sum',
-                name: 'sum-span',
-                nodeIds: ['sum'],
-            },
-            {
-                id: 'span-display',
-                name: 'display-span',
-                nodeIds: ['display'],
-            },
-        ]
-
         const program = generateProgram(
             nodes,
-            edges,
-            spans
+            edges
         )
 
         // ---- Assertions ----

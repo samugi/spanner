@@ -14,9 +14,8 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { generateProgram } from './compiler/graphToScheme'
-import type { Span } from './compiler/types'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 
 // In this implementation:
@@ -95,6 +94,7 @@ type CallSpec = {
   kind: string | 'call'
   name: string
   n_args: number
+  nodeIds?: string[]
 }
 
 // expression nodes data
@@ -173,7 +173,6 @@ function SpanNode({ data }: any) {
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [spans, setSpans] = useState<Span[]>([]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -205,19 +204,9 @@ function App() {
 
     const spanId = `span-${Date.now()}`
 
-    // set the span data
-    setSpans(s => [
-      ...s,
-      {
-        id: spanId,
-        name,
-        nodeIds: selected.map(n => n.id),
-      },
-    ])
-
     // sets the span as the parent node of the selected nodes
     // for UI/rendering reasons
-    setNodes(ns => computeNodesAfterCreateSpan(ns, selected, spans, edges, spanId, name))
+    setNodes(ns => computeNodesAfterCreateSpan(ns, selected, edges, spanId, name))
   }
 
   return (
@@ -286,7 +275,7 @@ function App() {
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                console.log(generateProgram(nodes, edges, spans))
+                console.log(generateProgram(nodes, edges))
               }}
             >
               Generate
@@ -297,7 +286,6 @@ function App() {
               onClick={() => {
                 setNodes([])
                 setEdges([])
-                setSpans([])
               }}
             >
               Clear All
