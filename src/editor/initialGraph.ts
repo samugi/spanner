@@ -27,19 +27,19 @@ export const initialNodes: ExprNode[] = [
     },
     {
         id: '3',
-        position: { x: 250, y: 150 },
+        position: { x: 170, y: 150 },
         data: procedureDataMapping['+'],
         type: 'expr',
     },
     {
         id: '4',
-        position: { x: 450, y: 150 },
+        position: { x: 370, y: 150 },
         data: procedureDataMapping['display'],
         type: 'expr',
     },
     {
         id: '5',
-        position: { x: 560, y: 150 },
+        position: { x: 570, y: 150 },
         data: procedureDataMapping['display'],
         type: 'expr',
     },

@@ -19,7 +19,6 @@ export function ExprNode({ data }: any) {
           id="flow-out"
           style={{ background: '#22d3ee' }}
         />
-
         {/* DATA */}
         <Handle
           type="source"
@@ -30,13 +29,45 @@ export function ExprNode({ data }: any) {
       </div>
     )
   }
-
   if (data.kind === 'call') {
-    const ARG_Y_START = 5
-    const ARG_Y_STEP = 10
     return (
-      <div style={{ padding: 10, border: '1px solid white' }}>
-        <div>{data.name}</div>
+      <div style={{
+        padding: '8px 12px',
+        border: '1px solid white',
+        minWidth: 120,
+        position: 'relative'
+      }}>
+        {/* Operation name centered */}
+        <div style={{
+          textAlign: 'center',
+          fontWeight: 500,
+          marginBottom: 8
+        }}>
+          {data.name}
+        </div>
+
+        {/* Arguments list */}
+        <div style={{ fontSize: 10, color: '#aaa' }}>
+          {Array.from(Array(data.n_args)).map((_, i) => (
+            <div key={i} style={{
+              marginBottom: 4,
+              paddingLeft: 12,
+              position: 'relative'
+            }}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`arg-${i}`}
+                style={{
+                  left: -6,
+                  background: '#4ade80'
+                }}
+              />
+              arg-{i}
+            </div>
+          ))}
+        </div>
+
         {/* FLOW */}
         <Handle
           type="target"
@@ -51,21 +82,11 @@ export function ExprNode({ data }: any) {
           style={{ background: '#22d3ee' }}
         />
 
-        {/* DATA */}
-        {Array.from(Array(data.n_args)).map((_, i) => (
-          <Handle
-            key={i}
-            type="target"
-            position={Position.Left}
-            id={`arg-${i}`}
-            style={{ top: ARG_Y_START + i * ARG_Y_STEP, background: '#4ade80' }}
-          />
-        ))}
+        {/* DATA OUTPUT */}
         <Handle
-          key="value"
           type="source"
           position={Position.Right}
-          id={`value`}
+          id="value"
           style={{ background: '#4ade80' }}
         />
       </div>

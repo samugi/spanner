@@ -51,7 +51,8 @@ function App() {
     [setEdges]
   );
 
-  function createSpan(name: string) {
+  function createSpan() {
+    const name = prompt('Enter span name:') || 'span'
     const selected = nodes.filter(
       n => n.selected && n.type === 'expr'
     )
@@ -123,7 +124,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button
               style={{ padding: 10, cursor: 'pointer' }}
-              onClick={() => createSpan('my-span')}
+              onClick={() => createSpan()}
             >
               Create span
             </button>
