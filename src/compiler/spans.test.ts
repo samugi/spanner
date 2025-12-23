@@ -69,6 +69,7 @@ describe('computeNodesAfterCreateSpan', () => {
         const nodes = [
             { id: 'a', type: 'expr', position: { x: 0, y: 0 } },
             { id: 'b', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old' },
+            { id: 'c', type: 'expr', position: { x: 0, y: 0 } },
             { id: 'span-old', type: 'span', position: { x: 0, y: 0 } },
         ] as Node[]
 
@@ -79,6 +80,7 @@ describe('computeNodesAfterCreateSpan', () => {
 
         const edges: Edge[] = [
             { id: 'e1', source: 'b', target: 'a' },
+            { id: 'e2', source: 'a', target: 'c' },
         ] as Edge[]
 
         const result = computeNodesAfterCreateSpan(
@@ -90,6 +92,8 @@ describe('computeNodesAfterCreateSpan', () => {
             'new'
         )
 
+        console.log(JSON.stringify(result, null, 2))
+
         expect(result.find(n => n.id === 'span-new')!.parentId)
             .toBe('span-old')
         expect(result.find(n => n.id === 'span-old')!.parentId)
@@ -98,5 +102,7 @@ describe('computeNodesAfterCreateSpan', () => {
             .toBe('span-old')
         expect(result.find(n => n.id === 'a')!.parentId)
             .toBe('span-new')
+        expect(result.find(n => n.id === 'c')!.parentId)
+            .toBeUndefined()
     })
 })

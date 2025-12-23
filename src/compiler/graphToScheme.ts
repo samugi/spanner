@@ -68,7 +68,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
                 // wrap the call_expr in the span
                 let cxId = `cx-${nodeSpan.id}`
-                call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}" "${cx}")))
+                call_expr = `(let ((${cxId} (start-span "${nodeSpan.name}" ${cx})))
   (begin
     ${call_expr}
     (end-span ${cxId})
