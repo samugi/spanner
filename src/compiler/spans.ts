@@ -46,9 +46,11 @@ export function computeNodesAfterCreateSpan(
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
         nodes
-            .filter(spanNode => spanNode.type === 'span' && dependsOn(wrappedNodesIds, new Set(
-                nodes.find(n => n.parentId === spanNode.id)?.id
-            ), edges))
+            .filter(spanNode =>
+                spanNode.type === 'span' &&
+                dependsOn(wrappedNodesIds, new Set(
+                    nodes.find(n => n.parentId === spanNode.id)?.id
+                ), edges))
             .map(s => s.id)
     )
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40

@@ -64,9 +64,10 @@ describe('computeNodesAfterCreateSpan', () => {
     it('reparents child spans when reachable from selected nodes', () => {
         const nodes = [
             { id: 'a', type: 'expr', position: { x: 0, y: 0 } },
-            { id: 'b', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old' },
-            { id: 'c', type: 'expr', position: { x: 0, y: 0 } },
-            { id: 'span-old', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old' } },
+            { id: 'b', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old-parent' },
+            { id: 'c', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old-child' },
+            { id: 'span-old-parent', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old-1' } },
+            { id: 'span-old-child', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old-2' } },
         ] as Node[]
 
         const edges: Edge[] = [
@@ -82,15 +83,23 @@ describe('computeNodesAfterCreateSpan', () => {
             'new'
         )
 
+        // span-new should have span-old-parent as parent
         expect(result.find(n => n.id === 'span-new')!.parentId)
-            .toBe('span-old')
-        expect(result.find(n => n.id === 'span-old')!.parentId)
+            .toBe('span-old-parent')
+        // span-old-parent should remain the root span
+        expect(result.find(n => n.id === 'span-old-parent')!.parentId)
             .toBeUndefined()
+        // `b` should remain in span-old-parent
         expect(result.find(n => n.id === 'b')!.parentId)
-            .toBe('span-old')
+            .toBe('span-old-parent')
+        // `c` should remain in span-old-child
+        expect(result.find(n => n.id === 'c')!.parentId)
+            .toBe('span-old-child')
+        // `a` should be in span-new
         expect(result.find(n => n.id === 'a')!.parentId)
             .toBe('span-new')
-        expect(result.find(n => n.id === 'c')!.parentId)
-            .toBeUndefined()
+        // span-old-child should now be child of span-new
+        expect(result.find(n => n.id === 'span-old-child')!.parentId)
+            .toBe('span-new')
     })
 })

@@ -5,10 +5,9 @@
 
 
 import {
-    type Node,
     type Edge,
 } from 'reactflow'
-import { type EdgeKind } from '../types'
+import { type EdgeKind, type ExprNode } from '../types'
 import { procedureDataMapping } from '../compiler/spec';
 
 // initial nodes and edges
@@ -17,13 +16,13 @@ export const initialNodes: ExprNode[] = [
     {
         id: '1',
         position: { x: 50, y: 100 },
-        data: { kind: 'literal', value: 1 },
+        data: { kind: 'literal', value: 1, name: 'Literal 1' },
         type: 'expr',
     },
     {
         id: '2',
         position: { x: 50, y: 200 },
-        data: { kind: 'literal', value: 2 },
+        data: { kind: 'literal', value: 2, name: 'Literal 2' },
         type: 'expr',
     },
     {

@@ -1,5 +1,9 @@
 // In this implementation:
 // 1. Nodes cannot be in more than one span
+// 2. We use the node parentId to determine span membership
+//   1. I.e. a node is in a span if its parentId is the span's id
+// 3. We use the span node parentId to determine span nesting
+//   1. I.e. a span is nested in another span if its parentId is the other span's id
 
 import ReactFlow, {
   Background,
