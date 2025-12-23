@@ -1,5 +1,6 @@
 import type { Node, Edge } from 'reactflow'
 import { renderSpan } from './spec'
+import type { Expression, Let, Literal, Call, Span } from './types'
 
 export function generateProgram(
     nodes: Node[],
@@ -8,51 +9,36 @@ export function generateProgram(
     return _generateProgram(nodes, edges, new Set(), null)
 }
 
-// Generate expression from a node
-// this depends on other nodes and edges as well because
-// depending on the node's inputs/outputs it may have to be generated differently (with/without lets, etc)
+
+// Generate intermediate representation
+// this depends on other nodes and edges as well because depending on the node's
+// inputs/outputs it may have to be generated differently (with/without lets, etc)
 //
 // This is also where we wrap calls in spans
-function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, nodeSpan: Node | null, visited: Set<string>): string {
+function generateIntermediate(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, nodeSpan: Node | null, visited: Set<string>): Expression {
     const node = nodes.find(n => n.id === nodeId)!
-    // TODO (if we want to squash lets): i.e. in case of flow and no data this is the only connection
-    const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
     const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
 
     switch (node.data.kind) {
         case 'literal': {
-            // literal has no inputs
-            // can be a simple let that wraps previous
             if (previous) {
-                let param_id = `p-${node.id}`
-                return `(let (( ${param_id} ${node.data.value} )) ${previous} )`
+                return { type: 'let', bindings: [{ varName: `p-${node.id}`, expr: node.data.value }], body: previous } as Let
             }
-            return node.data.value.toString()
+            return node.data.value as Literal
         }
         case 'call': {
-            let call_expr = `(let (( ${'p-' + node.id} (${node.data.name} `;
+            let bindings = [{
+                varName: `p-${node.id}`, expr: {
+                    type: 'call',
+                    name: node.data.name,
+                    args: incoming_data
+                        .sort((a, b) => a.targetHandle!
+                            .localeCompare(b.targetHandle!))
+                        .map(e => `p-${nodes.find(n => n.id === e.source)?.id!}`)
+                }
+            }]
 
-            // if the node has no input, we can close the let body without passing
-            // any arguments, otherwise we have to pass them
-            if (incoming_data.length === 0) {
-                call_expr = call_expr + ` )))`;
-
-            } else {
-                call_expr = call_expr + `${incoming_data
-                    // sort works because arg-0, arg-1, ... are lexicographically ordered
-                    .sort((a, b) => a.targetHandle!.localeCompare(b.targetHandle!))
-                    // we name the args as p-<node id> to match let bindings
-                    .map(e => nodes.find(n => n.id === e.source)?.id!)
-                    .map(id => `p-${id}`)
-                    .join(' ')} )))`;
-            }
-
-            if (previous) {
-                call_expr = call_expr + ` ${previous} )`
-            } else {
-                call_expr = call_expr + ` p-${node.id} )` // TODO? (if we want to squash lets): noop
-            }
-
+            let expr = { type: 'let', bindings: bindings, body: previous ? previous : `p-${node.id}` } as Expression
 
             // Span wrapping:
             const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
@@ -68,17 +54,16 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
                 // wrap the call_expr in the span
                 let cxId = `cx-${nodeSpan.id}`
-                let startSpan = renderSpan({ kind: "start-span", spanName: nodeSpan.data.name, context: cx });
-                let endSpan = renderSpan({ kind: "end-span", context: cxId });
-                call_expr = `(let ((${cxId} ${startSpan}))
-  (begin
-    ${call_expr}
-    ${endSpan}
-  )
-)`
+                expr = {
+                    type: 'span',
+                    name: nodeSpan.data.name,
+                    parentContext: cx,
+                    spanContext: cxId,
+                    wrapping: expr
+                } as Span
             }
 
-            return call_expr;
+            return expr;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -86,9 +71,35 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
     }
 }
 
-function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, result: string | null): string {
+// Generate Scheme from the intermediate representation
+function generateScheme(intermediate: Expression): string {
+    if ((intermediate as Let).type === 'let') {
+        const letNode = intermediate as Let
+
+        const bindings = letNode.bindings
+            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
+            .join(' ')
+
+        return `(let (${bindings}) ${generateScheme(letNode.body)})`
+    } else if ((intermediate as Span).type === 'span') {
+        const startSpan = renderSpan({ kind: "start-span", spanName: (intermediate as Span).name, context: (intermediate as Span).parentContext || 'none' });
+        const endSpan = renderSpan({ kind: "end-span", context: (intermediate as Span).spanContext });
+        return `(let (( ${(intermediate as Span).spanContext} ${startSpan} ))
+  (begin
+    ${generateScheme((intermediate as Span).wrapping)}
+    ${endSpan}
+  )
+)`
+    } else if ((intermediate as Call).type == 'call') {
+        return `(${(intermediate as Call).name} ${(intermediate as Call).args.join(' ')})`;
+    } else { // literal
+        return intermediate.toString();
+    }
+}
+
+function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, result: Expression | null): string {
     if (visited.size === nodes.length) {
-        return result || '';
+        return generateScheme(result || '');
     }
 
     for (const n of nodes) {
@@ -97,7 +108,7 @@ function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, re
         if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id) && n.type === 'expr') {
             visited.add(n.id);
             let spanNode = n.parentId ? nodes.find(s => s.type === 'span' && s.id === n.parentId) : null;
-            result = generateExpr(n.id, nodes, edges, result, spanNode || null, visited);
+            result = generateIntermediate(n.id, nodes, edges, result, spanNode || null, visited);
             break;
         } else if (n.type !== 'expr' && !visited.has(n.id)) {
             // span nodes are just containers, we can skip them
@@ -106,5 +117,5 @@ function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, re
         }
     }
 
-    return _generateProgram(nodes, edges, visited, result);
+    return generateScheme(_generateProgram(nodes, edges, visited, result));
 }

@@ -35,7 +35,7 @@ describe('graph → scheme compiler', () => {
 
         const program = generateProgram(nodes, edges)
 
-        expect(program).toContain('(let (( p-2 2 )) (let (( p-1 1 )) (let (( p-3 (+ p-1 p-2 ))) p-3 ) ) )')
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(let (( p-2 2 )) (let (( p-1 1 )) (let (( p-3 (+ p-1 p-2 ))) p-3 ) ) )'))
     })
 
     it('wraps calls in spans', () => {
@@ -51,8 +51,8 @@ describe('graph → scheme compiler', () => {
 
         const program = generateProgram(nodes, edges)
 
-        expect(program).toContain('start-span "my-span"')
-        expect(program).toContain('end-span')
+        expect(normalizeScheme(program)).toContain('start-span "my-span"')
+        expect(normalizeScheme(program)).toContain('end-span')
     })
 })
 
