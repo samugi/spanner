@@ -93,6 +93,12 @@ describe('generateProgram – spans + dataflow', () => {
                 parentId: 'span-display',
             },
             {
+                id: 'display2',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'display', n_args: 1 },
+            },
+            {
                 id: 'span-sum',
                 type: 'span',
                 position: { x: 0, y: 0 },
@@ -135,6 +141,24 @@ describe('generateProgram – spans + dataflow', () => {
                 targetHandle: 'arg-0',
                 data: { kind: 'data' },
             },
+            // display -> display2 (flow)
+            {
+                id: 'e4',
+                source: 'display',
+                target: 'display2',
+                sourceHandle: 'flow-out',
+                targetHandle: 'flow-in',
+                data: { kind: 'flow' },
+            },
+            // literals -> display2 (data)
+            {
+                id: 'e5',
+                source: 'lit2',
+                target: 'display2',
+                sourceHandle: 'value',
+                targetHandle: 'arg-0',
+                data: { kind: 'data' },
+            },
         ]
 
         const spans: Span[] = [
@@ -157,24 +181,25 @@ describe('generateProgram – spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-
         expect(normalizeScheme(program)).toBe(normalizeScheme(`
-            (let ((p-lit2 2))
-                (let ((p-lit1 1))
-                    (let ((cx-span-sum (start-span "sum-span" none)))
-                        (begin
-                            (let ((p-sum (+ p-lit1 p-lit2)))
-                                (let ((cx-span-display (start-span "display-span" cx-span-sum)))
-                                    (begin
-                                        (let ((p-display (display p-sum))) p-display)
-                                        (end-span cx-span-display)
+        (let ((p-lit2 2))
+            (let ((p-lit1 1))
+                (let ((cx-span-sum (start-span "sum-span" none)))
+                    (begin
+                        (let ((p-sum (+ p-lit1 p-lit2)))
+                            (let ((cx-span-display (start-span "display-span" cx-span-sum)))
+                                (begin
+                                    (let ((p-display (display p-sum)))
+                                        (let ((p-display2 (display p-lit2))) p-display2)
                                     )
+                                    (end-span cx-span-display)
                                 )
                             )
-                            (end-span cx-span-sum)
                         )
+                        (end-span cx-span-sum)
                     )
                 )
-            )`))
+            )
+        )`))
     })
 })
