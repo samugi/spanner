@@ -54,8 +54,9 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
 
             // Span wrapping:
+            const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
             // if all nodes in the span have been visited it means we are at the root of the span
-            if (nodeSpan && nodeSpan.data.wrapsNodeIds.every((id: string) => visited.has(id))) {
+            if (nodeSpan && nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
                 // if the span has a parent, we need to pass the parent context
                 let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
                 if (spanNode == undefined) {

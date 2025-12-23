@@ -34,13 +34,21 @@ export function computeNodesAfterCreateSpan(
 ): Node[] {
     const wrappedNodesIds = new Set(newSpanWraps.map(n => n.id))
     // find the parent span of the new span, if any
-    const parentSpan = nodes.find(node => node.type === 'span' &&
-        dependsOn(new Set(node.data.wrapsNodeIds), wrappedNodesIds, edges)
+    const parentSpan = nodes.find(spanNode =>
+        // filter span nodes
+        spanNode.type === 'span' &&
+        // where there is a dependency between the nodes wrapped by the new
+        // span and the nodes wrapped by this span
+        dependsOn(new Set(
+            nodes.find(n => n.parentId === spanNode.id)?.id
+        ), wrappedNodesIds, edges)
     )
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
         nodes
-            .filter(s => s.type === 'span' && dependsOn(wrappedNodesIds, new Set(s.data.wrapsNodeIds), edges))
+            .filter(spanNode => spanNode.type === 'span' && dependsOn(wrappedNodesIds, new Set(
+                nodes.find(n => n.parentId === spanNode.id)?.id
+            ), edges))
             .map(s => s.id)
     )
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
@@ -50,7 +58,7 @@ export function computeNodesAfterCreateSpan(
         type: 'span',
         position: { x: spanX, y: spanY },
         parentId: parentSpan?.id,
-        data: { name: newSpanName, wrapsNodeIds: newSpanWraps.map(n => n.id) },
+        data: { name: newSpanName },
         style: { width: 300, height: 200 },
     }
 

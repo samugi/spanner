@@ -17,7 +17,6 @@ export type CallNodeData = {
 
 export type SpanNodeData = {
     name: string
-    wrapsNodeIds: string[]
 }
 
 export type ExprNodeData = LiteralNodeData | CallNodeData

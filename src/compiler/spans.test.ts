@@ -66,7 +66,7 @@ describe('computeNodesAfterCreateSpan', () => {
             { id: 'a', type: 'expr', position: { x: 0, y: 0 } },
             { id: 'b', type: 'expr', position: { x: 0, y: 0 }, parentId: 'span-old' },
             { id: 'c', type: 'expr', position: { x: 0, y: 0 } },
-            { id: 'span-old', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old', wrapsNodeIds: ['b'] } },
+            { id: 'span-old', type: 'span', position: { x: 0, y: 0 }, data: { name: 'old' } },
         ] as Node[]
 
         const edges: Edge[] = [
