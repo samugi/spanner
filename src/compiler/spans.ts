@@ -31,23 +31,19 @@ export function computeNodesAfterCreateSpan(
     newSpanId: string,
     newSpanName: string
 ): Node[] {
-    const selectedIds = new Set(newSpanWraps.map(n => n.id))
-
-    const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
-    const spanY = Math.min(...newSpanWraps.map(n => n.position.y)) - 40
-
+    const wrappedNodesIds = new Set(newSpanWraps.map(n => n.id))
     // find the parent span of the new span, if any
     const parentSpan = nodes.find(node => node.type === 'span' &&
-        dependsOn(new Set(node.data.wrapsNodeIds), selectedIds, edges)
+        dependsOn(new Set(node.data.wrapsNodeIds), wrappedNodesIds, edges)
     )
-
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
         nodes
-            .filter(s => s.type === 'span' && dependsOn(selectedIds, new Set(s.data.wrapsNodeIds), edges))
+            .filter(s => s.type === 'span' && dependsOn(wrappedNodesIds, new Set(s.data.wrapsNodeIds), edges))
             .map(s => s.id)
     )
-
+    const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
+    const spanY = Math.min(...newSpanWraps.map(n => n.position.y)) - 40
     const newSpanNode: Node = {
         id: newSpanId,
         type: 'span',
@@ -61,7 +57,7 @@ export function computeNodesAfterCreateSpan(
         newSpanNode,
         ...nodes.map(n => {
             // Move selected nodes into new span
-            if (selectedIds.has(n.id)) {
+            if (wrappedNodesIds.has(n.id)) {
                 return {
                     ...n,
                     parentId: newSpanId,
@@ -85,4 +81,3 @@ export function computeNodesAfterCreateSpan(
         }),
     ]
 }
-

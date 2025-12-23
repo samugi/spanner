@@ -82,8 +82,6 @@ describe('computeNodesAfterCreateSpan', () => {
             'new'
         )
 
-        console.log(JSON.stringify(result, null, 2))
-
         expect(result.find(n => n.id === 'span-new')!.parentId)
             .toBe('span-old')
         expect(result.find(n => n.id === 'span-old')!.parentId)

@@ -4,7 +4,7 @@ export function generateProgram(
     nodes: Node[],
     edges: Edge[],
 ): string {
-    return generateProgramInternal(nodes, edges, new Set(), null)
+    return _generateProgram(nodes, edges, new Set(), null)
 }
 
 // Generate expression from a node
@@ -80,10 +80,9 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
             throw new Error(`Unknown node kind: ${node.data.kind}`)
         }
     }
-    return '';
 }
 
-function generateProgramInternal(nodes: Node[], edges: Edge[], visited: Set<string>, result: string | null): string {
+function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, result: string | null): string {
     if (visited.size === nodes.length) {
         return result || '';
     }
@@ -103,5 +102,5 @@ function generateProgramInternal(nodes: Node[], edges: Edge[], visited: Set<stri
         }
     }
 
-    return generateProgramInternal(nodes, edges, visited, result);
+    return _generateProgram(nodes, edges, visited, result);
 }
