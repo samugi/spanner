@@ -6,7 +6,7 @@ export type EdgeKind = 'flow' | 'data'
 export type LiteralNodeData = {
     kind: 'literal'
     name: string
-    value: number | string | boolean // TODO: support other literal types
+    value: number | string | boolean
 }
 
 export type CallNodeData = {

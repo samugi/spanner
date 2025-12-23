@@ -15,7 +15,7 @@ export function generateProgram(
 // This is also where we wrap calls in spans
 function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: string | null = null, nodeSpan: Node | null, visited: Set<string>): string {
     const node = nodes.find(n => n.id === nodeId)!
-    // TODO: useful for squashing lets together? i.e. in case of flow and no data this is the only connection
+    // TODO (if we want to squash lets): i.e. in case of flow and no data this is the only connection
     const incoming_flow = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'flow')
     const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
 
@@ -50,7 +50,7 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
             if (previous) {
                 call_expr = call_expr + ` ${previous} )`
             } else {
-                call_expr = call_expr + ` p-${node.id} )` // TODO: noop
+                call_expr = call_expr + ` p-${node.id} )` // TODO? (if we want to squash lets): noop
             }
 
 
