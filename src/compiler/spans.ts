@@ -25,26 +25,26 @@ function dependsOn(
 }
 
 export function computeNodesAfterCreateSpan(
-    ns: Node[],
-    selected: Node[],
+    nodes: Node[],
     edges: Edge[],
+    newSpanWraps: Node[],
     newSpanId: string,
-    name: string
+    newSpanName: string
 ): Node[] {
-    const selectedIds = new Set(selected.map(n => n.id))
+    const selectedIds = new Set(newSpanWraps.map(n => n.id))
 
-    const spanX = Math.min(...selected.map(n => n.position.x)) - 40
-    const spanY = Math.min(...selected.map(n => n.position.y)) - 40
+    const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
+    const spanY = Math.min(...newSpanWraps.map(n => n.position.y)) - 40
 
     // find the parent span of the new span, if any
-    const parentSpan = ns.find(node => node.type === 'span' &&
-        dependsOn(new Set(node.data.nodeIds), selectedIds, edges)
+    const parentSpan = nodes.find(node => node.type === 'span' &&
+        dependsOn(new Set(node.data.wrapsNodeIds), selectedIds, edges)
     )
 
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
-        ns
-            .filter(s => s.type === 'span' && dependsOn(selectedIds, new Set(s.data.nodeIds), edges))
+        nodes
+            .filter(s => s.type === 'span' && dependsOn(selectedIds, new Set(s.data.wrapsNodeIds), edges))
             .map(s => s.id)
     )
 
@@ -53,13 +53,13 @@ export function computeNodesAfterCreateSpan(
         type: 'span',
         position: { x: spanX, y: spanY },
         parentId: parentSpan?.id,
-        data: { name: name, nodeIds: selected.map(n => n.id) },
+        data: { name: newSpanName, wrapsNodeIds: newSpanWraps.map(n => n.id) },
         style: { width: 300, height: 200 },
     }
 
     return [
         newSpanNode,
-        ...ns.map(n => {
+        ...nodes.map(n => {
             // Move selected nodes into new span
             if (selectedIds.has(n.id)) {
                 return {

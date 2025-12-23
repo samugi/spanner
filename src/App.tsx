@@ -94,7 +94,7 @@ type CallSpec = {
   kind: string | 'call'
   name: string
   n_args: number
-  nodeIds?: string[]
+  wrapsNodeIds?: string[]
 }
 
 // expression nodes data
@@ -206,7 +206,7 @@ function App() {
 
     // sets the span as the parent node of the selected nodes
     // for UI/rendering reasons
-    setNodes(ns => computeNodesAfterCreateSpan(ns, selected, edges, spanId, name))
+    setNodes(ns => computeNodesAfterCreateSpan(ns, edges, selected, spanId, name))
   }
 
   return (

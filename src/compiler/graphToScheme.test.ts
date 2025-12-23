@@ -42,7 +42,7 @@ describe('graph → scheme compiler', () => {
         const nodes: Node[] = [
             { id: '1', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
             { id: '2', type: 'expr', data: { kind: 'call', name: 'display', n_args: 1 }, position: { x: 0, y: 0 }, parentId: 'span-1' },
-            { id: 'span-1', type: 'span', data: { name: 'my-span', nodeIds: ['2'] }, position: { x: 0, y: 0 } },
+            { id: 'span-1', type: 'span', data: { name: 'my-span', wrapsNodeIds: ['2'] }, position: { x: 0, y: 0 } },
         ]
 
         const edges: Edge[] = [
@@ -95,13 +95,13 @@ describe('generateProgram – spans + dataflow', () => {
                 id: 'span-sum',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'sum-span', nodeIds: ['sum'] },
+                data: { name: 'sum-span', wrapsNodeIds: ['sum'] },
             },
             {
                 id: 'span-display',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'display-span', nodeIds: ['display'] },
+                data: { name: 'display-span', wrapsNodeIds: ['display'] },
                 parentId: 'span-sum',
             }
         ]
