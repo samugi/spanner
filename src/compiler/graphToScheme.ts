@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow'
+import { renderSpan } from './spec'
 
 export function generateProgram(
     nodes: Node[],
@@ -67,10 +68,12 @@ function generateExpr(nodeId: string, nodes: Node[], edges: Edge[], previous: st
 
                 // wrap the call_expr in the span
                 let cxId = `cx-${nodeSpan.id}`
-                call_expr = `(let ((${cxId} (start-span "${nodeSpan.data.name}" ${cx})))
+                let startSpan = renderSpan({ kind: "start-span", spanName: nodeSpan.data.name, context: cx });
+                let endSpan = renderSpan({ kind: "end-span", context: cxId });
+                call_expr = `(let ((${cxId} ${startSpan}))
   (begin
     ${call_expr}
-    (end-span ${cxId})
+    ${endSpan}
   )
 )`
             }
