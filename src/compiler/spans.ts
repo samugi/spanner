@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow'
+import type { SpanNode } from '../types'
 
 // whether any node in targetIds depends on any node in sourceIds
 function dependsOn(
@@ -44,7 +45,7 @@ export function computeNodesAfterCreateSpan(
     )
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
     const spanY = Math.min(...newSpanWraps.map(n => n.position.y)) - 40
-    const newSpanNode: Node = {
+    const newSpanNode: SpanNode = {
         id: newSpanId,
         type: 'span',
         position: { x: spanX, y: spanY },

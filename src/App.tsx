@@ -20,7 +20,7 @@ import { nodeTypes } from './renderer/nodes'
 import { type EdgeKind } from './types'
 
 import { initialNodes, initialEdges } from './editor/initialGraph'
-import { exprNodeData } from './compiler/spec'
+import { procedureDataMapping } from './compiler/spec'
 
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -88,7 +88,7 @@ function App() {
                 setNodes(ns => [...ns, {
                   id,
                   position: { x: Math.random() * 400, y: Math.random() * 400 },
-                  data: { kind: 'literal', value: Number(value) },
+                  data: { kind: 'literal', value: Number(value), name: `Literal ${value}` },
                   type: 'expr',
                 }])
               }}
@@ -105,7 +105,7 @@ function App() {
                 setNodes(ns => [...ns, {
                   id,
                   position: { x: Math.random() * 400, y: Math.random() * 400 },
-                  data: exprNodeData[name],
+                  data: procedureDataMapping[name],
                   type: 'expr',
                 }])
               }}
