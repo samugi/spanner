@@ -1,0 +1,78 @@
+{
+    "core_procedures": {
+        "+": {
+            "kind": "call",
+            "name": "+",
+            "n_args": 2
+        },
+        "-": {
+            "kind": "call",
+            "name": "-",
+            "n_args": 2
+        },
+        "*": {
+            "kind": "call",
+            "name": "*",
+            "n_args": 2
+        },
+        "/": {
+            "kind": "call",
+            "name": "/",
+            "n_args": 2
+        },
+        "=": {
+            "kind": "call",
+            "name": "=",
+            "n_args": 2
+        },
+        "<": {
+            "kind": "call",
+            "name": "<",
+            "n_args": 2
+        },
+        "<=": {
+            "kind": "call",
+            "name": "<=",
+            "n_args": 2
+        },
+        ">": {
+            "kind": "call",
+            "name": ">",
+            "n_args": 2
+        },
+        ">=": {
+            "kind": "call",
+            "name": ">=",
+            "n_args": 2
+        },
+        "and": {
+            "kind": "call",
+            "name": "and",
+            "n_args": 2
+        },
+        "or": {
+            "kind": "call",
+            "name": "or",
+            "n_args": 2
+        },
+        "not": {
+            "kind": "call",
+            "name": "not",
+            "n_args": 1
+        },
+        "display": {
+            "kind": "call",
+            "name": "display",
+            "n_args": 1
+        }
+    },
+    "extra_procedures": {},
+    "templates": {
+        "start-span": {
+            "template": "(start-span \"${spanName}\" ${context})"
+        },
+        "end-span": {
+            "template": "(end-span ${context})"
+        }
+    }
+}
