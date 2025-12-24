@@ -17,7 +17,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { generateProgram } from './compiler/IrToScheme'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 import { nodeTypes } from './renderer/nodes'
@@ -27,6 +27,10 @@ import { initialNodes, initialEdges } from './editor/initialGraph'
 import { procedureDataMapping } from './compiler/spec'
 
 function App() {
+  const [selectedProcedure, setSelectedProcedure] = useState(
+    Object.keys(procedureDataMapping)[0]
+  )
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -75,8 +79,18 @@ function App() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        selectionOnDrag={true}
+        /* selection */
+        selectionOnDrag
         selectionMode={SelectionMode.Partial}
+
+        /* mac-friendly multi select */
+        selectionKeyCode={null}
+        multiSelectionKeyCode={['Meta']}
+
+        /* stop the hand */
+        panOnDrag={false}
+        panOnScroll={false}
+
         fitView
       >
         <Background />
@@ -101,22 +115,39 @@ function App() {
               Add Literal
             </button>
 
+            <select
+              value={selectedProcedure}
+              onChange={(e) => setSelectedProcedure(e.target.value)}
+              style={{ padding: 8 }}
+            >
+              {Object.keys(procedureDataMapping).map(name => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                const name = prompt('Enter function name (e.g., +, -, *, display):')
-                if (!name) return
                 const id = `${Date.now()}`
-                setNodes(ns => [...ns, {
-                  id,
-                  position: { x: Math.random() * 400, y: Math.random() * 400 },
-                  data: procedureDataMapping[name],
-                  type: 'expr',
-                }])
+                setNodes(ns => [
+                  ...ns,
+                  {
+                    id,
+                    position: {
+                      x: Math.random() * 400,
+                      y: Math.random() * 400,
+                    },
+                    data: procedureDataMapping[selectedProcedure],
+                    type: 'expr',
+                  },
+                ])
               }}
             >
               Add Call
             </button>
+
           </div>
         </Panel>
 

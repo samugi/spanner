@@ -6,10 +6,10 @@ export const nodeTypes = {
   span: SpanNode,
 }
 
-export function ExprNode({ data }: any) {
+export function ExprNode({ data, selected }: any) {
   if (data.kind === 'literal') {
     return (
-      <div style={{ padding: 10, border: '1px solid white' }}>
+      <div style={{ padding: 10, border: selected ? '2px solid #2563eb' : '1px solid white' }}>
         <div>Literal</div>
         <div>{data.value}</div>
         {/* FLOW */}
@@ -33,7 +33,7 @@ export function ExprNode({ data }: any) {
     return (
       <div style={{
         padding: '8px 12px',
-        border: '1px solid white',
+        border: selected ? '2px solid #2563eb' : '1px solid white',
         minWidth: 120,
         position: 'relative'
       }}>
