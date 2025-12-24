@@ -17,7 +17,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { generateProgram } from './compiler/IrToScheme'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 import { nodeTypes } from './renderer/nodes'
@@ -27,12 +27,37 @@ import { initialNodes, initialEdges } from './editor/initialGraph'
 import { procedureDataMapping } from './compiler/spec'
 
 function App() {
+
   const [selectedProcedure, setSelectedProcedure] = useState(
     Object.keys(procedureDataMapping)[0]
   )
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  const deleteSelectedNodes = useCallback(() => {
+    setNodes(ns => {
+      const selectedIds = new Set(ns.filter(n => n.selected).map(n => n.id))
+      setEdges(es => es.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target)))
+      return ns.filter(n => !selectedIds.has(n.id))
+    })
+  }, [setNodes, setEdges])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete or Backspace key
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // prevent browser default (like going back)
+        e.preventDefault()
+        deleteSelectedNodes()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [deleteSelectedNodes])
 
   const onConnect = useCallback(
     (connection: Connection) => {
