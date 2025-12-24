@@ -59,6 +59,7 @@ function App() {
     }
   }, [deleteSelectedNodes])
 
+
   const onConnect = useCallback(
     (connection: Connection) => {
       const kind: EdgeKind =
@@ -203,7 +204,23 @@ function App() {
             >
               Clear All
             </button>
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => {
+                const dataStr = JSON.stringify({ nodes, edges }, null, 2)
+                const blob = new Blob([dataStr], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'graph.json'
+                a.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
+              Download JSON
+            </button>
           </div>
+
         </Panel>
       </ReactFlow>
     </div>

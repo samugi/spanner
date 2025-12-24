@@ -6,7 +6,7 @@ export const nodeTypes = {
   span: SpanNode,
 }
 
-export function ExprNode({ data, selected }: any) {
+function ExprNode({ data, selected }: any) {
   if (data.kind === 'literal') {
     return (
       <div style={{ padding: 10, border: selected ? '2px solid #2563eb' : '1px solid white' }}>

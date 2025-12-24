@@ -12,7 +12,6 @@ export type LiteralNodeData = {
 export type CallNodeData = {
     kind: 'call'
     name: string
-    n_args: number
 }
 
 export type SpanNodeData = {
