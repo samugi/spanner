@@ -18,15 +18,7 @@ export type Call = {
     args: Expression[]
 }
 
-export type Span = {
-    type: 'span',
-    name: string,
-    parentContext: string | null,
-    spanContext: string,
-    wrapping: Expression
-}
-
-export type ExprObj = Call | Let | LetStar | Span
+export type ExprObj = Call | Let | LetStar
 export type Expression = Literal | ExprObj
 
 export function isExprObj(expr: Expression): expr is ExprObj {

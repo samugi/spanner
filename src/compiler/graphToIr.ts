@@ -4,7 +4,7 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Literal, type Call, type Span, type LetStar, type ExprObj, isExprObj } from './types'
+import { type Expression, type Let, type Literal, type Call, type LetStar, type ExprObj, isExprObj } from './types'
 
 function usesVar(expr: Expression, name: string): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean') {
@@ -21,7 +21,7 @@ function usesVar(expr: Expression, name: string): boolean {
     // in top-level variable usages for let-squashing
     const createsScope = (e: Expression): boolean => {
         return typeof e === 'object' && 'type' in e &&
-            (e.type === 'let' || e.type === 'let*' || e.type === 'span')
+            (e.type === 'let' || e.type === 'let*')
     }
 
     // Structured expressions
@@ -38,9 +38,6 @@ function usesVar(expr: Expression, name: string): boolean {
             const letExpr = exprNode as Let | LetStar
             return letExpr.bindings.some(b => !createsScope(b.expr) && usesVar(b.expr, name))
         }
-
-        case 'span':
-            return false
 
         default: {
             const _exhaustive: never = exprNode
@@ -135,13 +132,37 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
 
                 // wrap the call_expr in the span
                 let cxId = `cx-${nodeSpan.id}`
+
+                // a Span is just a Let that starts a span, runs some code, then ends the span
+                // TODO: load from template etc...
                 expr = {
-                    type: 'span',
-                    name: nodeSpan.data.name,
-                    parentContext: cx,
-                    spanContext: cxId,
-                    wrapping: expr
-                } as Span
+                    type: 'let',
+                    bindings: [
+                        {
+                            varName: cxId,
+                            expr: {
+                                type: 'call',
+                                name: 'start-span',
+                                args: [
+                                    `"${nodeSpan.data.name}"`,
+                                    cx
+                                ]
+                            } as Call
+                        }
+                    ],
+                    body: {
+                        type: 'call',
+                        name: 'begin',
+                        args: [
+                            expr,
+                            {
+                                type: 'call',
+                                name: 'end-span',
+                                args: [cxId]
+                            } as Call
+                        ]
+                    } as Call
+                } as Let;
             }
 
             return expr;

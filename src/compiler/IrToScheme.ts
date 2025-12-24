@@ -1,6 +1,6 @@
 import type { Node, Edge } from 'reactflow'
 import { renderSpan } from './spec'
-import { type Expression, type Let, type Call, type Span, type LetStar, type ExprObj } from './types'
+import { type Expression, type Let, type Call, type LetStar, type ExprObj } from './types'
 import { generateIR } from './graphToIr'
 
 export function generateProgram(
@@ -29,18 +29,8 @@ function generateScheme(intermediate: Expression): string {
             .join(' ')
         return `(let* (${bindings}) ${generateScheme(letStarNode.body)})`
 
-    } else if ((intermediate as Span).type === 'span') {
-        const startSpan = renderSpan({ kind: "start-span", spanName: (intermediate as Span).name, context: (intermediate as Span).parentContext || 'none' });
-        const endSpan = renderSpan({ kind: "end-span", context: (intermediate as Span).spanContext });
-        return `(let (( ${(intermediate as Span).spanContext} ${startSpan} ))
-  (begin
-    ${generateScheme((intermediate as Span).wrapping)}
-    ${endSpan}
-  )
-)`
-
     } else if ((intermediate as Call).type == 'call') {
-        return `(${(intermediate as Call).name} ${(intermediate as Call).args.join(' ')})`;
+        return `(${(intermediate as Call).name} ${(intermediate as Call).args.map(arg => generateScheme(arg)).join(' ')})`;
 
     } else { // literal
         return intermediate.toString();
