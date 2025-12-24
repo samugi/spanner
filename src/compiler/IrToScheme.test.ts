@@ -180,6 +180,6 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (p-lit1 1) (cx-span-sum (start-span "sum-span" none))) (begin (let ((p-sum (+ p-lit1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum))) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (p-lit1 1) (cx-span-sum (start-span "sum-span" cx-none))) (begin (let ((p-sum (+ p-lit1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum))) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
     })
 })

@@ -1,5 +1,5 @@
 import type { Node, Edge } from 'reactflow'
-import { type Expression, isLet, isLetStar, isCall } from './types'
+import { type Expression, isLet, isLetStar, type Symbol, isCall, isVar } from './types'
 import { generateIR } from './graphToIr'
 
 export function generateProgram(
@@ -7,6 +7,10 @@ export function generateProgram(
     edges: Edge[],
 ): string {
     return _generateProgram(nodes, edges, new Set(), null)
+}
+
+function renderSymbol(sym: Symbol): string {
+    return `${sym.prefix}-${sym.id}`
 }
 
 // Generate Scheme from the intermediate representation
@@ -18,20 +22,22 @@ function generateScheme(expr: Expression): string {
 
     if (isLet(expr)) {
         const bindings = expr.bindings
-            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
+            .map(b => `(${renderSymbol(b.sym)} ${generateScheme(b.expr)})`)
             .join(' ')
 
         return `(let (${bindings}) ${generateScheme(expr.body)})`
 
     } else if (isLetStar(expr)) {
         const bindings = expr.bindings
-            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
+            .map(b => `(${renderSymbol(b.sym)} ${generateScheme(b.expr)})`)
             .join(' ')
         return `(let* (${bindings}) ${generateScheme(expr.body)})`
 
     } else if (isCall(expr)) {
         return `(${expr.name} ${expr.args.map(arg => generateScheme(arg)).join(' ')})`;
 
+    } else if (isVar(expr)) {
+        return renderSymbol(expr.sym);
     }
 
     const _exhaustive: never = expr

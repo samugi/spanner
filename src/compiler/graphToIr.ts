@@ -4,16 +4,20 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Call, isExprObj, isLetLike, type LetStar } from './types'
+import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef } from './types'
+import _ from 'lodash';
 
-function usesVar(expr: Expression, name: string): boolean {
-    if (typeof expr === 'number' || typeof expr === 'boolean') {
+function newParamSymbol(id: string): Symbol {
+    return { id, prefix: 'p' } as Symbol
+}
+
+function newCxSymbol(id: string): Symbol {
+    return { id, prefix: 'cx' } as Symbol
+}
+
+function usesVar(expr: Expression, sym: Symbol): boolean {
+    if (typeof expr === 'number' || typeof expr === 'boolean' || typeof expr === 'string') {
         return false
-    }
-
-    // String literals vs variable references
-    if (typeof expr === 'string') {
-        return expr === name
     }
 
     // Helper: check if expression creates a new scope
@@ -24,15 +28,17 @@ function usesVar(expr: Expression, name: string): boolean {
     }
 
     switch (expr.type) {
+        case 'var':
+            return _.isEqual((expr as VarRef).sym, sym);
         case 'call':
             return expr.args.some(arg =>
-                !createsScope(arg) && usesVar(arg, name)
+                !createsScope(arg) && usesVar(arg, sym)
             )
 
         case 'let':
         case 'let*':
             return expr.bindings.some(b =>
-                !createsScope(b.expr) && usesVar(b.expr, name)
+                !createsScope(b.expr) && usesVar(b.expr, sym)
             )
 
         default: {
@@ -44,7 +50,7 @@ function usesVar(expr: Expression, name: string): boolean {
 
 function squashLets(
     expr: Expression,
-    outParam: string,
+    outParam: Symbol,
     outExpr: Expression
 ): Let | LetStar | null {
     if (!isLetLike(expr)) {
@@ -56,7 +62,7 @@ function squashLets(
     return {
         type: needsLetStar ? 'let*' : expr.type,
         bindings: [
-            { varName: outParam, expr: outExpr },
+            { sym: outParam, expr: outExpr },
             ...expr.bindings,
         ],
         body: expr.body,
@@ -68,13 +74,15 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
     const node = nodes.find(n => n.id === nodeId)!
     const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
 
+    const symbol = newParamSymbol(node.id);
+
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
-                return squashLets(previous, `p-${node.id}`, node.data.value) ||
+                return squashLets(previous, symbol, node.data.value) ||
                     {
                         type: 'let',
-                        bindings: [{ varName: `p-${node.id}`, expr: node.data.value }],
+                        bindings: [{ sym: symbol, expr: node.data.value }],
                         body: previous
                     } as Let;
             }
@@ -83,19 +91,19 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
         case 'call': {
 
             let binding = {
-                varName: `p-${node.id}`, expr: {
+                sym: symbol, expr: {
                     type: 'call',
                     name: node.data.name,
                     args: incoming_data
                         .sort((a, b) => a.targetHandle!
                             .localeCompare(b.targetHandle!))
-                        .map(e => `p-${nodes.find(n => n.id === e.source)?.id!}`)
+                        .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }))
                 }
             };
 
             let expr: Expression | null = null;
             if (previous) {
-                expr = squashLets(previous, binding.varName, binding.expr as Expression);
+                expr = squashLets(previous, binding.sym, binding.expr as Expression);
             }
 
             if (!expr) {
@@ -117,10 +125,10 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                     throw new Error(`Span node with id ${nodeSpan.id} not found`);
                 }
                 let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-                let cx = parentSpan ? `cx-${parentSpan.id}` : 'none'
+                let cx = parentSpan ? parentSpan.id : 'none'
 
                 // wrap the call_expr in the span
-                let cxId = `cx-${nodeSpan.id}`
+                let cxId = nodeSpan.id
 
                 // a Span is just a Let that starts a span, runs some code, then ends the span
                 // TODO: load from template etc...
@@ -128,13 +136,13 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                     type: 'let',
                     bindings: [
                         {
-                            varName: cxId,
+                            sym: newCxSymbol(cxId),
                             expr: {
                                 type: 'call',
                                 name: 'start-span',
                                 args: [
                                     `"${nodeSpan.data.name}"`,
-                                    cx
+                                    { type: 'var', sym: newCxSymbol(cx) }
                                 ]
                             } as Call
                         }
@@ -147,7 +155,7 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                             {
                                 type: 'call',
                                 name: 'end-span',
-                                args: [cxId]
+                                args: [{ type: 'var', sym: newCxSymbol(cxId) }]
                             } as Call
                         ]
                     } as Call

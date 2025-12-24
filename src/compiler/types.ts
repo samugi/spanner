@@ -2,13 +2,13 @@ export type Literal = number | string | boolean
 
 export type Let = {
     type: 'let',
-    bindings: { varName: string, expr: Expression }[]
+    bindings: Binding[]
     body: Expression
 }
 
 export type LetStar = {
     type: 'let*',
-    bindings: { varName: string, expr: Expression }[]
+    bindings: Binding[]
     body: Expression
 }
 
@@ -18,8 +18,23 @@ export type Call = {
     args: Expression[]
 }
 
+export type Binding = {
+    sym: Symbol
+    expr: Expression
+}
+
+export type VarRef = {
+    type: 'var'
+    sym: Symbol
+}
+
+export type Symbol = {
+    id: string
+    prefix: string
+}
+
 export type ExprObj = Call | Let | LetStar
-export type Expression = Literal | ExprObj
+export type Expression = Literal | ExprObj | VarRef
 
 // Type guards - like Rust's pattern matching
 export function isExprObj(expr: Expression): expr is ExprObj {
@@ -40,4 +55,8 @@ export function isCall(expr: Expression): expr is Call {
 
 export function isLetLike(expr: Expression): expr is Let | LetStar {
     return isLet(expr) || isLetStar(expr)
+}
+
+export function isVar(expr: Expression): expr is VarRef {
+    return (expr as VarRef).type === 'var'
 }
