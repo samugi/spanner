@@ -16,21 +16,23 @@ function usesVar(expr: Expression, name: string): boolean {
         return expr === name
     }
 
-    // Only look for top-level usages (don't recurse into nested scopes)
-    if (!isExprObj(expr)) {
-        return false
+    // Helper: check if expression creates a new scope
+    // in which case we don't look inside it as we are only interested
+    // in top-level variable usages for let-squashing
+    const createsScope = (e: Expression): boolean => {
+        return isExprObj(e) && (isLetLike(e));
     }
 
     switch (expr.type) {
         case 'call':
             return expr.args.some(arg =>
-                !isLetLike(arg) && usesVar(arg, name)
+                !createsScope(arg) && usesVar(arg, name)
             )
 
         case 'let':
         case 'let*':
             return expr.bindings.some(b =>
-                !isLetLike(b.expr) && usesVar(b.expr, name)
+                !createsScope(b.expr) && usesVar(b.expr, name)
             )
 
         default: {
