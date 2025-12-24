@@ -26,4 +26,9 @@ export type Span = {
     wrapping: Expression
 }
 
-export type Expression = Literal | Call | Let | LetStar | Span
+export type ExprObj = Call | Let | LetStar | Span
+export type Expression = Literal | ExprObj
+
+export function isExprObj(expr: Expression): expr is ExprObj {
+    return typeof expr === 'object' && expr !== null && 'type' in expr
+}

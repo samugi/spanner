@@ -35,7 +35,7 @@ describe('graph → scheme compiler', () => {
 
         const program = generateProgram(nodes, edges)
 
-        expect(normalizeScheme(program)).toContain(normalizeScheme('(let (( p-2 2 )) (let (( p-1 1 )) (let (( p-3 (+ p-1 p-2 ))) p-3 ) ) )'))
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(let* ((p-2 2) (p-1 1) (p-3 (+ p-1 p-2))) p-3)'))
     })
 
     it('wraps calls in spans', () => {
@@ -161,24 +161,6 @@ describe('generateProgram – spans + dataflow', () => {
 
         // ---- Assertions ----
         expect(normalizeScheme(program)).toBe(normalizeScheme(`
-        (let ((p-lit2 2))
-            (let ((p-lit1 1))
-                (let ((cx-span-sum (start-span "sum-span" none)))
-                    (begin
-                        (let ((p-sum (+ p-lit1 p-lit2)))
-                            (let ((cx-span-display (start-span "display-span" cx-span-sum)))
-                                (begin
-                                    (let ((p-display (display p-sum)))
-                                        (let ((p-display2 (display p-lit2))) p-display2)
-                                    )
-                                    (end-span cx-span-display)
-                                )
-                            )
-                        )
-                        (end-span cx-span-sum)
-                    )
-                )
-            )
-        )`))
+        (let ((p-lit2 2) (p-lit1 1)) (let ((cx-span-sum (start-span "sum-span" none))) (begin (let ((p-sum (+ p-lit1 p-lit2))) (let ((cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum)) (p-display2 (display p-lit2))) p-display2) (end-span cx-span-display)))) (end-span cx-span-sum))))`))
     })
 })
