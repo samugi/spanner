@@ -125,10 +125,10 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                     throw new Error(`Span node with id ${nodeSpan.id} not found`);
                 }
                 let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-                let cx = parentSpan ? parentSpan.id : 'none'
+                let incomingCx = parentSpan ? parentSpan.id : 'none'
 
                 // wrap the call_expr in the span
-                let cxId = nodeSpan.id
+                let outgoingCx = nodeSpan.id
 
                 // a Span is just a Let that starts a span, runs some code, then ends the span
                 // TODO: load from template etc...
@@ -136,13 +136,13 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                     type: 'let',
                     bindings: [
                         {
-                            sym: newCxSymbol(cxId),
+                            sym: newCxSymbol(outgoingCx),
                             expr: {
                                 type: 'call',
                                 name: 'start-span',
                                 args: [
                                     `"${nodeSpan.data.name}"`,
-                                    { type: 'var', sym: newCxSymbol(cx) }
+                                    { type: 'var', sym: newCxSymbol(incomingCx) }
                                 ]
                             } as Call
                         }
@@ -155,7 +155,7 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                             {
                                 type: 'call',
                                 name: 'end-span',
-                                args: [{ type: 'var', sym: newCxSymbol(cxId) }]
+                                args: [{ type: 'var', sym: newCxSymbol(outgoingCx) }]
                             } as Call
                         ]
                     } as Call
