@@ -2,30 +2,24 @@
 
 import type { ExprNodeData } from "../types";
 
-// TODO: load from config file
+
+// load from the config file at the root at config.json
+import configFile from '../../compiler-spec.json' assert { type: 'json' };
+
+
+
+export const coreProcedures = configFile.core_procedures as Record<string, ExprNodeData>;
+export const extraProcedures = configFile.extra_procedures as Record<string, ExprNodeData>;
+
 export const procedureDataMapping: Record<string, ExprNodeData> = {
-    "+": { kind: 'call', name: '+', n_args: 2 },
-    "-": { kind: 'call', name: '-', n_args: 2 },
-    "*": { kind: 'call', name: '*', n_args: 2 },
-    "/": { kind: 'call', name: '/', n_args: 2 },
+    ...coreProcedures,
+    ...extraProcedures,
+};
 
-    "=": { kind: 'call', name: '=', n_args: 2 },
-    "<": { kind: 'call', name: '<', n_args: 2 },
-    "<=": { kind: 'call', name: '<=', n_args: 2 },
-    ">": { kind: 'call', name: '>', n_args: 2 },
-    ">=": { kind: 'call', name: '>=', n_args: 2 },
-
-    "and": { kind: 'call', name: 'and', n_args: 2 },
-    "or": { kind: 'call', name: 'or', n_args: 2 },
-    "not": { kind: 'call', name: 'not', n_args: 1 },
-
-    "display": { kind: 'call', name: 'display', n_args: 1 },
+export type TemplateData = {
+    template: string;
 }
-
-let config = {
-    "start-span": "(start-span \"${spanName}\" ${context})",
-    "end-span": "(end-span ${context})"
-}
+let span_templates = configFile.templates as Record<string, TemplateData>;
 
 export type SpanOp =
     | { kind: "start-span"; spanName: string; context: string }
@@ -33,6 +27,6 @@ export type SpanOp =
 
 // TODO: load from config file
 export function renderSpan(op: SpanOp): string {
-    const template = config[op.kind];
+    const template = span_templates[op.kind].template;
     return template.replace(/\$\{(\w+)\}/g, (_, key) => op[key as keyof SpanOp] as string);
 }

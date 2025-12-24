@@ -4,7 +4,7 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef } from './types'
+import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type StartSpan, type EndSpan } from './types'
 import _ from 'lodash';
 
 function newParamSymbol(id: string): Symbol {
@@ -40,6 +40,10 @@ function usesVar(expr: Expression, sym: Symbol): boolean {
             return expr.bindings.some(b =>
                 !createsScope(b.expr) && usesVar(b.expr, sym)
             )
+
+        case 'start-span':
+        case 'end-span':
+            return !createsScope(expr.context) && usesVar(expr.context, sym)
 
         default: {
             const _exhaustive: never = expr
@@ -131,20 +135,16 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                 let outgoingCx = nodeSpan.id
 
                 // a Span is just a Let that starts a span, runs some code, then ends the span
-                // TODO: load from template etc...
                 expr = {
                     type: 'let',
                     bindings: [
                         {
                             sym: newCxSymbol(outgoingCx),
                             expr: {
-                                type: 'call',
-                                name: 'start-span',
-                                args: [
-                                    `"${nodeSpan.data.name}"`,
-                                    { type: 'var', sym: newCxSymbol(incomingCx) }
-                                ]
-                            } as Call
+                                type: 'start-span',
+                                spanName: nodeSpan.data.name,
+                                context: { type: 'var', sym: newCxSymbol(incomingCx) }
+                            } as StartSpan
                         }
                     ],
                     body: {
@@ -153,10 +153,9 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                         args: [
                             expr,
                             {
-                                type: 'call',
-                                name: 'end-span',
-                                args: [{ type: 'var', sym: newCxSymbol(outgoingCx) }]
-                            } as Call
+                                type: 'end-span',
+                                context: { type: 'var', sym: newCxSymbol(outgoingCx) }
+                            } as EndSpan
                         ]
                     } as Call
                 } as Let;

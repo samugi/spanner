@@ -28,15 +28,25 @@ export type VarRef = {
     sym: Symbol
 }
 
+export type StartSpan = {
+    type: 'start-span'
+    spanName: string
+    context: VarRef
+}
+
+export type EndSpan = {
+    type: 'end-span'
+    context: VarRef
+}
+
 export type Symbol = {
     id: string
     prefix: string
 }
 
 export type ExprObj = Call | Let | LetStar
-export type Expression = Literal | ExprObj | VarRef
+export type Expression = Literal | ExprObj | VarRef | StartSpan | EndSpan
 
-// Type guards - like Rust's pattern matching
 export function isExprObj(expr: Expression): expr is ExprObj {
     return typeof expr === 'object' && expr !== null && 'type' in expr
 }
@@ -49,14 +59,6 @@ export function isLetStar(expr: Expression): expr is LetStar {
     return isExprObj(expr) && expr.type === 'let*'
 }
 
-export function isCall(expr: Expression): expr is Call {
-    return isExprObj(expr) && expr.type === 'call'
-}
-
 export function isLetLike(expr: Expression): expr is Let | LetStar {
     return isLet(expr) || isLetStar(expr)
-}
-
-export function isVar(expr: Expression): expr is VarRef {
-    return (expr as VarRef).type === 'var'
 }
