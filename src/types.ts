@@ -20,6 +20,5 @@ export type SpanNodeData = {
 }
 
 export type ExprNodeData = LiteralNodeData | CallNodeData
-
 export type ExprNode = Node<ExprNodeData, 'expr'>
 export type SpanNode = Node<SpanNodeData, 'span'>
