@@ -21,7 +21,7 @@ function normalizeScheme(code: string): string {
 }
 
 describe('graph → scheme compiler', () => {
-    it('generates (+ 1 2)', () => {
+    it('generates using let', () => {
         const nodes: Node[] = [
             { id: '1', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
             { id: '2', type: 'expr', data: { kind: 'literal', value: 2 }, position: { x: 0, y: 0 } },
@@ -35,7 +35,27 @@ describe('graph → scheme compiler', () => {
 
         const program = generateProgram(nodes, edges)
 
-        expect(normalizeScheme(program)).toContain(normalizeScheme('(let* ((p-2 2) (p-1 1) (p-3 (+ p-1 p-2))) p-3)'))
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(let ((p-2 2) (p-1 1)) (+ p-1 p-2))'))
+    })
+
+    it('generates using let* when needed', () => {
+        const nodes: Node[] = [
+
+            { id: '0', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
+            { id: '1', type: 'expr', data: { kind: 'literal', value: 2 }, position: { x: 0, y: 0 } },
+            { id: '2', type: 'expr', data: { kind: 'call', name: '+', n_args: 2 }, position: { x: 0, y: 0 } },
+            { id: '3', type: 'expr', data: { kind: 'call', name: '*', n_args: 2 }, position: { x: 0, y: 0 } },
+        ]
+
+        const edges: Edge[] = [
+            { id: 'e0', source: '0', target: '2', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e1', source: '1', target: '2', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e2', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e3', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(let* ((p-1 2) (p-0 1) (p-2 (+ p-0 p-1))) (* p-1 p-2))'))
     })
 
     it('wraps calls in spans', () => {
@@ -56,7 +76,7 @@ describe('graph → scheme compiler', () => {
     })
 })
 
-describe('generateProgram – spans + dataflow', () => {
+describe('generateProgram: spans + dataflow', () => {
     it('adds two literals, then displays the result, with separate spans', () => {
         const nodes: Node[] = [
             {
@@ -161,6 +181,6 @@ describe('generateProgram – spans + dataflow', () => {
 
         // ---- Assertions ----
         expect(normalizeScheme(program)).toBe(normalizeScheme(`
-        (let ((p-lit2 2) (p-lit1 1)) (let ((cx-span-sum (start-span "sum-span" none))) (begin (let ((p-sum (+ p-lit1 p-lit2))) (let ((cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum)) (p-display2 (display p-lit2))) p-display2) (end-span cx-span-display)))) (end-span cx-span-sum))))`))
+        (let ((p-lit2 2) (p-lit1 1)) (let ((cx-span-sum (start-span "sum-span" none))) (begin (let ((p-sum (+ p-lit1 p-lit2))) (let ((cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum))) (display p-lit2)) (end-span cx-span-display)))) (end-span cx-span-sum))))`))
     })
 })

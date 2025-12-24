@@ -111,7 +111,15 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
             if (previous) {
                 expr = squashLets(previous, binding.varName, binding.expr as Expression);
             }
-            expr = expr || { type: 'let', bindings: [binding], body: previous ? previous : `p-${node.id}` } as Expression
+
+            if (!expr) {
+                // if there's a previous, we need to create a let, else just return the binding expr
+                expr = previous ? {
+                    type: 'let',
+                    bindings: [binding],
+                    body: previous
+                } as Expression : binding.expr as Expression;
+            }
 
             // Span wrapping:
             const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
