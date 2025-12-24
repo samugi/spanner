@@ -1,6 +1,5 @@
 import type { Node, Edge } from 'reactflow'
-import { renderSpan } from './spec'
-import { type Expression, type Let, type Call, type LetStar, type ExprObj } from './types'
+import { type Expression, isLet, isLetStar, isCall } from './types'
 import { generateIR } from './graphToIr'
 
 export function generateProgram(
@@ -11,30 +10,32 @@ export function generateProgram(
 }
 
 // Generate Scheme from the intermediate representation
-function generateScheme(intermediate: Expression): string {
-    if ((intermediate as Let).type === 'let') {
-        const letNode = intermediate as Let
-
-        const bindings = letNode.bindings
-            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
-            .join(' ')
-
-        return `(let (${bindings}) ${generateScheme(letNode.body)})`
-
-    } else if ((intermediate as LetStar).type === 'let*') {
-        const letStarNode = intermediate as LetStar
-
-        const bindings = letStarNode.bindings
-            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
-            .join(' ')
-        return `(let* (${bindings}) ${generateScheme(letStarNode.body)})`
-
-    } else if ((intermediate as Call).type == 'call') {
-        return `(${(intermediate as Call).name} ${(intermediate as Call).args.map(arg => generateScheme(arg)).join(' ')})`;
-
-    } else { // literal
-        return intermediate.toString();
+function generateScheme(expr: Expression): string {
+    // Handle primitives
+    if (typeof expr !== 'object') {
+        return expr.toString()
     }
+
+    if (isLet(expr)) {
+        const bindings = expr.bindings
+            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
+            .join(' ')
+
+        return `(let (${bindings}) ${generateScheme(expr.body)})`
+
+    } else if (isLetStar(expr)) {
+        const bindings = expr.bindings
+            .map(b => `(${b.varName} ${generateScheme(b.expr)})`)
+            .join(' ')
+        return `(let* (${bindings}) ${generateScheme(expr.body)})`
+
+    } else if (isCall(expr)) {
+        return `(${expr.name} ${expr.args.map(arg => generateScheme(arg)).join(' ')})`;
+
+    }
+
+    const _exhaustive: never = expr
+    return _exhaustive
 }
 
 function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, result: Expression | null): string {

@@ -4,7 +4,7 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Literal, type Call, type LetStar, type ExprObj, isExprObj } from './types'
+import { type Expression, type Let, type Call, isExprObj, isLetLike, type LetStar } from './types'
 
 function usesVar(expr: Expression, name: string): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean') {
@@ -16,31 +16,25 @@ function usesVar(expr: Expression, name: string): boolean {
         return expr === name
     }
 
-    // Helper: check if expression creates a new scope
-    // in which case we don't look inside it as we are only interested
-    // in top-level variable usages for let-squashing
-    const createsScope = (e: Expression): boolean => {
-        return typeof e === 'object' && 'type' in e &&
-            (e.type === 'let' || e.type === 'let*')
+    // Only look for top-level usages (don't recurse into nested scopes)
+    if (!isExprObj(expr)) {
+        return false
     }
 
-    // Structured expressions
-    const exprNode = expr as ExprObj
-
-    switch (exprNode.type) {
-        case 'call': {
-            const call = exprNode as Call
-            return call.args.some(arg => !createsScope(arg) && usesVar(arg, name))
-        }
+    switch (expr.type) {
+        case 'call':
+            return expr.args.some(arg =>
+                !isLetLike(arg) && usesVar(arg, name)
+            )
 
         case 'let':
-        case 'let*': {
-            const letExpr = exprNode as Let | LetStar
-            return letExpr.bindings.some(b => !createsScope(b.expr) && usesVar(b.expr, name))
-        }
+        case 'let*':
+            return expr.bindings.some(b =>
+                !isLetLike(b.expr) && usesVar(b.expr, name)
+            )
 
         default: {
-            const _exhaustive: never = exprNode
+            const _exhaustive: never = expr
             return _exhaustive
         }
     }
@@ -50,28 +44,21 @@ function squashLets(
     expr: Expression,
     outParam: string,
     outExpr: Expression
-): ExprObj | null {
-    // Only proceed if expr is an ExprObj
-    if (!isExprObj(expr)) {
+): Let | LetStar | null {
+    if (!isLetLike(expr)) {
         return null
     }
 
-    // Only proceed if expr is a let or let*
-    if (expr.type !== 'let' && expr.type !== 'let*') {
-        return null
-    }
-
-    const letExpr = expr as Let | LetStar
-    const needsLetStar = letExpr.bindings.some(b => usesVar(b.expr, outParam))
+    const needsLetStar = expr.bindings.some(b => usesVar(b.expr, outParam))
 
     return {
-        ...letExpr,
-        type: needsLetStar ? 'let*' : letExpr.type,
+        type: needsLetStar ? 'let*' : expr.type,
         bindings: [
             { varName: outParam, expr: outExpr },
-            ...letExpr.bindings,
+            ...expr.bindings,
         ],
-    } as ExprObj
+        body: expr.body,
+    } as Let | LetStar
 }
 
 // This is also where we wrap calls in spans
@@ -89,7 +76,7 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
                         body: previous
                     } as Let;
             }
-            return node.data.value as Literal
+            return node.data.value;
         }
         case 'call': {
 
