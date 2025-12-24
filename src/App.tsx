@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 
 import { useCallback } from 'react'
-import { generateProgram } from './compiler/graphToScheme'
+import { generateProgram } from './compiler/IrToScheme'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 import { nodeTypes } from './renderer/nodes'
 import { type EdgeKind } from './types'

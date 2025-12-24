@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Node, Edge } from 'reactflow'
-import { generateProgram } from './graphToScheme'
+import { generateProgram } from './IrToScheme'
 
 function normalizeScheme(code: string): string {
     return code
