@@ -361,4 +361,96 @@ describe('generateProgram: spans + dataflow', () => {
         )
         `))
     })
+
+    it('wraps only the then-branch of an if in a span', () => {
+        const nodes: Node[] = [
+            {
+                id: 'span-11',
+                type: 'span',
+                position: { x: 0, y: 0 },
+                data: { name: 'sda' },
+            },
+            {
+                id: '0',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '1' },
+            },
+            {
+                id: '2',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '3' },
+            },
+            {
+                id: '3',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: '>', n_args: 2, output: true },
+            },
+            {
+                id: '4',
+                type: 'if',
+                position: { x: 0, y: 0 },
+                data: { kind: 'if', name: 'if' },
+            },
+            {
+                id: '5',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                parentId: 'span-11',
+                data: { kind: 'literal', value: '"foo"' },
+            },
+            {
+                id: '7',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '"bar"' },
+            },
+            {
+                id: '9',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                parentId: 'span-11',
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+            },
+            {
+                id: '10',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+            },
+        ]
+
+        const edges: Edge[] = [
+            { id: 'e1', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e2', source: '0', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e3', source: '3', target: '4', sourceHandle: 'value', targetHandle: 'cond', data: { kind: 'data' } },
+
+            { id: 'e4', source: '5', target: '9', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e5', source: '7', target: '10', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+
+            { id: 'e6', source: '9', target: '4', sourceHandle: 'flow-out', targetHandle: 'then', data: { kind: 'control' } },
+            { id: 'e7', source: '10', target: '4', sourceHandle: 'flow-out', targetHandle: 'else', data: { kind: 'control' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`
+(let* ((p-2 3) (p-0 1) (p-3 (> p-2 p-0)))
+  (if p-3
+      (let ((cx-span-11 (start-span "sda" cx-none)))
+        (begin
+          (let ((p-5 "foo")) (display p-5))
+          (end-span cx-span-11)
+        )
+      )
+      (let ((p-7 "bar")) (display p-7))
+  )
+)
+        `)
+        )
+    })
+
 })

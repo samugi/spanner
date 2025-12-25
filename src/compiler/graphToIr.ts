@@ -98,6 +98,51 @@ function collectReachableNodes(
     return reachable;
 }
 
+function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Expression, nodeSpan: Node | null): Expression {
+    // Span wrapping:
+    const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
+    // if all nodes in the span have been visited it means we are at the root of the span
+    if (nodeSpan && nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
+        // if the span has a parent, we need to pass the parent context
+        let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
+        if (spanNode == undefined) {
+            throw new Error(`Span node with id ${nodeSpan.id} not found`);
+        }
+        let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
+        let incomingCx = parentSpan ? parentSpan.id : 'none'
+
+        // wrap the call_expr in the span
+        let outgoingCx = nodeSpan.id
+
+        // a Span is just a Let that starts a span, runs some code, then ends the span
+        expr = {
+            type: 'let',
+            bindings: [
+                {
+                    sym: newCxSymbol(outgoingCx),
+                    expr: {
+                        type: 'start-span',
+                        spanName: nodeSpan.data.name,
+                        context: { type: 'var', sym: newCxSymbol(incomingCx) }
+                    } as StartSpan
+                }
+            ],
+            body: {
+                type: 'call',
+                name: 'begin',
+                args: [
+                    expr,
+                    {
+                        type: 'end-span',
+                        context: { type: 'var', sym: newCxSymbol(outgoingCx) }
+                    } as EndSpan
+                ]
+            } as Call
+        } as Let;
+    }
+    return expr;
+}
+
 // This is also where we wrap calls in spans
 function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, nodeSpan: Node | null, visited: Set<string>): Expression {
     visited.add(nodeId);
@@ -108,12 +153,13 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
-                return squashLets(previous, symbol, node.data.value) ||
+                const squashed = squashLets(previous, symbol, node.data.value) ||
                     {
                         type: 'let',
                         bindings: [{ sym: symbol, expr: node.data.value }],
                         body: previous
                     } as Let;
+                return wrapInSpanIfNeeded(nodes, visited, squashed, nodeSpan);
             }
             return node.data.value;
         }
@@ -129,27 +175,27 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             )!
 
             const condSym = newParamSymbol(condEdge.source)
+
+            // `then` and `else` branches are treated as programs of their own
+            // because they are not dependencies like other inputs, they are
+            // control flow branches that are executed conditionally.
+            // So we collect all nodes reachable from the `then` and `else` nodes
+            // and generate IR for those subgraphs separately, then add all those
+            // nodes to the visited set to avoid re-processing them.
             const thenNodes = collectReachableNodes(thenEdge.source, edges);
             const elseNodes = collectReachableNodes(elseEdge.source, edges);
-
-            const thenVisited = new Set(visited);
             const thenExpr = generateIrSubProgram(
                 nodes,
                 edges,
-                thenNodes,
-                thenVisited
+                thenNodes
             )
-
-            const elseVisited = new Set(visited);
             const elseExpr = generateIrSubProgram(
                 nodes,
                 edges,
-                elseNodes,
-                elseVisited
+                elseNodes
             )
-
-            thenVisited.forEach(id => visited.add(id));
-            elseVisited.forEach(id => visited.add(id));
+            thenNodes.forEach(id => visited.add(id));
+            elseNodes.forEach(id => visited.add(id));
 
             const ifExpr: Call = {
                 type: 'call',
@@ -187,20 +233,19 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
 
             // handle calls with no output (if, display, etc)
             if (node.data.output === false) {
-                if (!previous) {
-                    // no previous expression: just return the call
-                    return callExpr
+                if (previous) {
+                    callExpr = {
+                        type: 'call',
+                        name: 'begin',
+                        output: false,
+                        args: [
+                            callExpr,
+                            previous
+                        ]
+                    } as Call
                 }
-                // sequence: add previous to the tail of begin
-                return {
-                    type: 'call',
-                    name: 'begin',
-                    output: false,
-                    args: [
-                        callExpr,
-                        previous
-                    ]
-                } as Call
+
+                return wrapInSpanIfNeeded(nodes, visited, callExpr, nodeSpan);
             }
 
             // normal call with output: use let
@@ -225,49 +270,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 } as Expression : binding.expr as Expression;
             }
 
-            // Span wrapping:
-            const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
-            // if all nodes in the span have been visited it means we are at the root of the span
-            if (nodeSpan && nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
-                // if the span has a parent, we need to pass the parent context
-                let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
-                if (spanNode == undefined) {
-                    throw new Error(`Span node with id ${nodeSpan.id} not found`);
-                }
-                let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-                let incomingCx = parentSpan ? parentSpan.id : 'none'
-
-                // wrap the call_expr in the span
-                let outgoingCx = nodeSpan.id
-
-                // a Span is just a Let that starts a span, runs some code, then ends the span
-                expr = {
-                    type: 'let',
-                    bindings: [
-                        {
-                            sym: newCxSymbol(outgoingCx),
-                            expr: {
-                                type: 'start-span',
-                                spanName: nodeSpan.data.name,
-                                context: { type: 'var', sym: newCxSymbol(incomingCx) }
-                            } as StartSpan
-                        }
-                    ],
-                    body: {
-                        type: 'call',
-                        name: 'begin',
-                        args: [
-                            expr,
-                            {
-                                type: 'end-span',
-                                context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                            } as EndSpan
-                        ]
-                    } as Call
-                } as Let;
-            }
-
-            return expr;
+            return wrapInSpanIfNeeded(nodes, visited, expr, nodeSpan);
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -276,8 +279,8 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
 }
 
 // Main function to generate IR from a set of nodes and edges
-export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
-    visited = visited || new Set<string>();
+export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>): Expression {
+    const visited = new Set<string>();
     let result: Expression | null = null;
 
     // visited all in traverseNodes?
@@ -288,10 +291,15 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
             }
             // visit all the children of the current node n
             const outgoing = allEdges.filter(e => e.source === n.id)
-            const visitedAllChildren = outgoing
-                .every(e => visited.has(e.target))
-            // a node can only be visited if all its children have been visited
-            if (visitedAllChildren && !visited.has(n.id)) {
+
+            // check if all children (that are visitable) have been visited
+            // a node can only be visited if all its (visitable) children
+            // have been visited
+            const allChildrenVisited = outgoing
+                .filter(e => traverseNodes.has(e.target))
+                .every(e => visited.has(e.target));
+
+            if (allChildrenVisited && !visited.has(n.id)) {
                 visited.add(n.id);
                 const spanNode = n.parentId
                     ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
