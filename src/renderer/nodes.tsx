@@ -1,4 +1,5 @@
 import { Handle, Position } from "reactflow"
+import { useState } from "react"
 
 // node types mapping
 export const nodeTypes = {
@@ -30,30 +31,43 @@ function ExprNode({ data, selected }: any) {
     )
   }
   if (data.kind === 'call') {
+    // make n_args === -1 nodes expandable
+    const isVariadic = data.n_args === -1
+    const [argCount, setArgCount] = useState(
+      isVariadic ? 0 : data.n_args
+    )
+
     return (
-      <div style={{
-        padding: '8px 12px',
-        border: selected ? '2px solid #2563eb' : '1px solid white',
-        minWidth: 120,
-        position: 'relative'
-      }}>
-        {/* Operation name centered */}
-        <div style={{
-          textAlign: 'center',
-          fontWeight: 500,
-          marginBottom: 8
-        }}>
+      <div
+        style={{
+          padding: '8px 12px',
+          border: selected ? '2px solid #2563eb' : '1px solid white',
+          minWidth: 120,
+          position: 'relative'
+        }}
+      >
+        {/* Operation name */}
+        <div
+          style={{
+            textAlign: 'center',
+            fontWeight: 500,
+            marginBottom: 6
+          }}
+        >
           {data.name}
         </div>
 
-        {/* Arguments list */}
+        {/* Arguments */}
         <div style={{ fontSize: 10, color: '#aaa' }}>
-          {Array.from(Array(data.n_args)).map((_, i) => (
-            <div key={i} style={{
-              marginBottom: 4,
-              paddingLeft: 12,
-              position: 'relative'
-            }}>
+          {Array.from({ length: argCount }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                marginBottom: 4,
+                paddingLeft: 12,
+                position: 'relative'
+              }}
+            >
               <Handle
                 type="target"
                 position={Position.Left}
@@ -67,6 +81,27 @@ function ExprNode({ data, selected }: any) {
             </div>
           ))}
         </div>
+
+        {/* Expand button (ONLY for variadic) */}
+        {isVariadic && (
+          <button
+            onClick={() => setArgCount((c: number) => c + 1)}
+            style={{
+              marginTop: 4,
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              fontSize: 12,
+              lineHeight: 1,
+              padding: 2
+            }}
+            title="Add argument"
+          >
+            ▾
+          </button>
+        )}
 
         {/* FLOW */}
         <Handle

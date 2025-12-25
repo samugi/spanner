@@ -64,6 +64,26 @@
             "kind": "call",
             "name": "display",
             "n_args": 1
+        },
+        "list": {
+            "kind": "call",
+            "name": "list",
+            "n_args": -1
+        },
+        "cons": {
+            "kind": "call",
+            "name": "cons",
+            "n_args": 2
+        },
+        "car": {
+            "kind": "call",
+            "name": "car",
+            "n_args": 1
+        },
+        "cdr": {
+            "kind": "call",
+            "name": "cdr",
+            "n_args": 1
         }
     },
     "extra_procedures": {},
