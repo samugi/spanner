@@ -3,87 +3,116 @@
         "+": {
             "kind": "call",
             "name": "+",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "-": {
             "kind": "call",
             "name": "-",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "*": {
             "kind": "call",
             "name": "*",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "/": {
             "kind": "call",
             "name": "/",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "=": {
             "kind": "call",
             "name": "=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "<": {
             "kind": "call",
             "name": "<",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "<=": {
             "kind": "call",
             "name": "<=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         ">": {
             "kind": "call",
             "name": ">",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         ">=": {
             "kind": "call",
             "name": ">=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "and": {
             "kind": "call",
             "name": "and",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "or": {
             "kind": "call",
             "name": "or",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "not": {
             "kind": "call",
             "name": "not",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "display": {
             "kind": "call",
             "name": "display",
-            "n_args": 1
+            "n_args": 1,
+            "output": false
         },
         "list": {
             "kind": "call",
             "name": "list",
-            "n_args": -1
+            "n_args": -1,
+            "output": true
         },
         "cons": {
             "kind": "call",
             "name": "cons",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "car": {
             "kind": "call",
             "name": "car",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "cdr": {
             "kind": "call",
             "name": "cdr",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
+        },
+        "if": {
+            "kind": "call",
+            "name": "if",
+            "n_args": 3,
+            "output": true
+        },
+        "string=?": {
+            "kind": "call",
+            "name": "string=?",
+            "n_args": 2,
+            "output": true
         }
     },
     "extra_procedures": {},

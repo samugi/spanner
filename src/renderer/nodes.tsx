@@ -33,6 +33,7 @@ function ExprNode({ data, selected }: any) {
   if (data.kind === 'call') {
     // make n_args === -1 nodes expandable
     const isVariadic = data.n_args === -1
+    const hasOutput = data.output === true
     const [argCount, setArgCount] = useState(
       isVariadic ? 0 : data.n_args
     )
@@ -118,12 +119,14 @@ function ExprNode({ data, selected }: any) {
         />
 
         {/* DATA OUTPUT */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="value"
-          style={{ background: '#4ade80' }}
-        />
+        {hasOutput && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="value"
+            style={{ background: '#4ade80' }}
+          />
+        )}
       </div>
     )
   }

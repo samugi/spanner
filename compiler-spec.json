@@ -3,184 +3,220 @@
         "+": {
             "kind": "call",
             "name": "+",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "-": {
             "kind": "call",
             "name": "-",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "*": {
             "kind": "call",
             "name": "*",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "/": {
             "kind": "call",
             "name": "/",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "=": {
             "kind": "call",
             "name": "=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "<": {
             "kind": "call",
             "name": "<",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "<=": {
             "kind": "call",
             "name": "<=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         ">": {
             "kind": "call",
             "name": ">",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         ">=": {
             "kind": "call",
             "name": ">=",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "and": {
             "kind": "call",
             "name": "and",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "or": {
             "kind": "call",
             "name": "or",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "not": {
             "kind": "call",
             "name": "not",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "display": {
             "kind": "call",
             "name": "display",
-            "n_args": 1
+            "n_args": 1,
+            "output": false
         },
         "list": {
             "kind": "call",
             "name": "list",
-            "n_args": -1
+            "n_args": -1,
+            "output": true
         },
         "cons": {
             "kind": "call",
             "name": "cons",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "car": {
             "kind": "call",
             "name": "car",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "cdr": {
             "kind": "call",
             "name": "cdr",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "if": {
             "kind": "call",
             "name": "if",
-            "n_args": 3
+            "n_args": 3,
+            "output": true
         },
         "string=?": {
             "kind": "call",
             "name": "string=?",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         }
     },
     "extra_procedures": {
         "core::server::stream::get-metadata": {
             "kind": "call",
             "name": "core::server::stream::get-metadata",
-            "n_args": 0
+            "n_args": 0,
+            "output": true
         },
         "core::server::stream::tcp-metadata": {
             "kind": "call",
             "name": "core::server::stream::tcp-metadata",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "core::server::stream::tcp::peer-port": {
             "kind": "call",
             "name": "core::server::stream::tcp::peer-port",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "core::server::stream::tcp::local-port": {
             "kind": "call",
             "name": "core::server::stream::tcp::local-port",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "http::proxy-http::response::clear": {
             "kind": "call",
             "name": "http::proxy-http::response::clear",
-            "n_args": 0
+            "n_args": 0,
+            "output": true
         },
         "http::proxy-http::response::set-header": {
             "kind": "call",
             "name": "http::proxy-http::response::set-header",
-            "n_args": 2
+            "n_args": 2,
+            "output": true
         },
         "http::proxy-http::send-response": {
             "kind": "call",
             "name": "http::proxy-http::send-response",
-            "n_args": 0
+            "n_args": 0,
+            "output": true
         },
         "core::server::tls::get-client-hello": {
             "kind": "call",
             "name": "core::server::tls::get-client-hello",
-            "n_args": 0
+            "n_args": 0,
+            "output": true
         },
         "core::server::tls::client-hello::server-name": {
             "kind": "call",
             "name": "core::server::tls::client-hello::server-name",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "core::server::tls::server-config-builder::new-default": {
             "kind": "call",
             "name": "core::server::tls::server-config-builder::new-default",
-            "n_args": 0
+            "n_args": 0,
+            "output": true
         },
         "todo-kv::certificate-der::get": {
             "kind": "call",
             "name": "todo-kv::certificate-der::get",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "todo-vault::key-der::get": {
             "kind": "call",
             "name": "todo-vault::key-der::get",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "stdlib-matching::engine::make-field-str": {
             "kind": "call",
             "name": "stdlib-matching::engine::make-field-str",
-            "n_args": 3
+            "n_args": 3,
+            "output": true
         },
         "core::server::tls::server-config-builder::single-cert": {
             "kind": "call",
             "name": "core::server::tls::server-config-builder::single-cert",
-            "n_args": 3
+            "n_args": 3,
+            "output": true
         },
         "core::server::tls::server-config-builder::build": {
             "kind": "call",
             "name": "core::server::tls::server-config-builder::build",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "core::server::tls::complete-handshake": {
             "kind": "call",
             "name": "core::server::tls::complete-handshake",
-            "n_args": 1
+            "n_args": 1,
+            "output": true
         },
         "stdlib-matching::engine::execute": {
             "kind": "call",
             "name": "stdlib-matching::engine::execute",
-            "n_args": 3
+            "n_args": 3,
+            "output": true
         }
     },
     "templates": {

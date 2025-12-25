@@ -25,12 +25,16 @@ import { type EdgeKind } from './types'
 
 import { initialNodes, initialEdges } from './editor/initialGraph'
 import { procedureDataMapping } from './compiler/spec'
+import { makeNodeId } from './utils'
 
 function App() {
 
   const [selectedProcedure, setSelectedProcedure] = useState(
     Object.keys(procedureDataMapping)[0]
   )
+
+  const [currNodeId, setCurrNodeId] = useState(0);
+
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -89,7 +93,8 @@ function App() {
 
     if (selected.length === 0) return
 
-    const spanId = `span-${Date.now()}`
+    const spanId = `span-${currNodeId}`;
+    setCurrNodeId((c: number) => c + 1);
 
     // sets the span as the parent node of the selected nodes
     // for UI/rendering reasons
@@ -129,7 +134,8 @@ function App() {
               onClick={() => {
                 const value = prompt('Enter literal value:')
                 if (value === null) return
-                const id = `${Date.now()}`
+                const id = `${currNodeId}`;
+                setCurrNodeId((c: number) => c + 1);
                 setNodes(ns => [...ns, {
                   id,
                   position: { x: Math.random() * 400, y: Math.random() * 400 },
@@ -156,7 +162,8 @@ function App() {
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                const id = `${Date.now()}`
+                const id = `${currNodeId}`;
+                setCurrNodeId((c: number) => c + 1);
                 setNodes(ns => [
                   ...ns,
                   {
