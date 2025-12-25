@@ -1,12 +1,9 @@
 import { generateScheme } from "./IrToScheme";
 import type { Node, Edge } from 'reactflow'
-import { type Expression } from './types'
-import { generateIR, generateIrSubProgram } from './graphToIr'
-
+import { generateIrSubProgram } from './graphToIr'
 
 export function generateProgram(nodes: Node[], edges: Edge[]): string {
-    const allNodeIds = new Set(nodes.map(n => n.id));
-    const visited = new Set<string>();
-    const result = generateIrSubProgram(nodes, edges, allNodeIds, visited);
+    const nonSpanNodeIds = new Set(nodes.filter(n => n.type !== 'span').map(n => n.id));
+    const result = generateIrSubProgram(nodes, edges, nonSpanNodeIds, null);
     return generateScheme(result || '');
 }

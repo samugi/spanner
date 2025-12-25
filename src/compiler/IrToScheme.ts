@@ -1,6 +1,4 @@
-import type { Node, Edge } from 'reactflow'
 import { type Expression, type Symbol } from './types'
-import { generateIR } from './graphToIr'
 import { renderSpan } from './spec'
 
 function renderSymbol(sym: Symbol): string {
