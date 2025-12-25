@@ -5,7 +5,77 @@ import { useState } from "react"
 export const nodeTypes = {
   expr: ExprNode,
   span: SpanNode,
+  if: IfNode,
 }
+
+function IfNode({ selected }: any) {
+  return (
+    <div
+      style={{
+        padding: '10px 12px',
+        border: selected ? '2px solid #2563eb' : '1px solid white',
+        minWidth: 120,
+        minHeight: 110,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative'
+      }}
+    >
+      <div style={{ textAlign: 'center', fontWeight: 600 }}>
+        if
+      </div>
+
+      {/* condition */}
+      <div style={{ position: 'relative', height: 24 }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="cond"
+          style={{ background: '#4ade80' }}
+        />
+        <span style={{ fontSize: 10, color: '#aaa', marginLeft: 10 }}>
+          condition
+        </span>
+      </div>
+
+      {/* then */}
+      <div style={{ position: 'relative', height: 24 }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="then"
+          style={{ background: '#facc15' }}
+        />
+        <span style={{ fontSize: 10, color: '#aaa', marginLeft: 10 }}>
+          then
+        </span>
+      </div>
+
+      {/* else */}
+      <div style={{ position: 'relative', height: 24 }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="else"
+          style={{ background: '#facc15' }}
+        />
+        <span style={{ fontSize: 10, color: '#aaa', marginLeft: 10 }}>
+          else
+        </span>
+      </div>
+
+      {/* flow out */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="flow-out"
+        style={{ background: '#22d3ee' }}
+      />
+    </div>
+  )
+}
+
 
 function ExprNode({ data, selected }: any) {
   if (data.kind === 'literal') {
@@ -30,6 +100,7 @@ function ExprNode({ data, selected }: any) {
       </div>
     )
   }
+
   if (data.kind === 'call') {
     // make n_args === -1 nodes expandable
     const isVariadic = data.n_args === -1
@@ -118,6 +189,7 @@ function ExprNode({ data, selected }: any) {
           style={{ background: '#22d3ee' }}
         />
 
+
         {/* DATA OUTPUT */}
         {hasOutput && (
           <Handle
@@ -127,7 +199,11 @@ function ExprNode({ data, selected }: any) {
             style={{ background: '#4ade80' }}
           />
         )}
+
+
       </div>
+
+
     )
   }
 }

@@ -18,14 +18,13 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 
 import { useCallback, useEffect, useState } from 'react'
-import { generateProgram } from './compiler/IrToScheme'
+import { generateProgram } from './compiler/compile'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 import { nodeTypes } from './renderer/nodes'
 import { type EdgeKind } from './types'
 
 import { initialNodes, initialEdges } from './editor/initialGraph'
 import { procedureDataMapping } from './compiler/spec'
-import { makeNodeId } from './utils'
 
 function App() {
 
@@ -34,10 +33,14 @@ function App() {
   )
 
   const [currNodeId, setCurrNodeId] = useState(0);
-
-
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // check nodes and set min to the max node id + 1 to avoid collisions
+  useEffect(() => {
+    const maxId = Math.max(...nodes.map(n => parseInt(n.id)), 0)
+    setCurrNodeId(maxId + 1)
+  }, [nodes])
 
   const deleteSelectedNodes = useCallback(() => {
     setNodes(ns => {
@@ -66,24 +69,32 @@ function App() {
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      const kind: EdgeKind =
+      let kind: EdgeKind = 'data'
+      let branch: 'then' | 'else' | undefined
+
+      if (connection.targetHandle === 'then' || connection.targetHandle === 'else') {
+        kind = 'control'
+        branch = connection.targetHandle
+      } else if (
         connection.sourceHandle?.startsWith('flow') ||
-          connection.targetHandle?.startsWith('flow')
-          ? 'flow'
-          : 'data'
+        connection.targetHandle?.startsWith('flow')
+      ) {
+        kind = 'flow'
+      }
 
       setEdges(eds =>
         addEdge(
           {
             ...connection,
-            data: { kind },
+            data: { kind, branch },
           },
           eds
         )
       )
     },
     [setEdges]
-  );
+  )
+
 
   function createSpan() {
     const name = prompt('Enter span name:') || 'span'
@@ -164,6 +175,8 @@ function App() {
               onClick={() => {
                 const id = `${currNodeId}`;
                 setCurrNodeId((c: number) => c + 1);
+                const data = procedureDataMapping[selectedProcedure]
+
                 setNodes(ns => [
                   ...ns,
                   {
@@ -173,7 +186,7 @@ function App() {
                       y: Math.random() * 400,
                     },
                     data: procedureDataMapping[selectedProcedure],
-                    type: 'expr',
+                    type: data.kind === 'if' ? 'if' : 'expr',
                   },
                 ])
               }}

@@ -1,108 +1,249 @@
 {
     "nodes": [
         {
-            "id": "1",
+            "id": "0",
             "position": {
-                "x": 50,
-                "y": 100
+                "x": 76.73139484797417,
+                "y": 78.80719714131142
             },
             "data": {
                 "kind": "literal",
-                "value": 1,
+                "value": "1",
                 "name": "Literal 1"
             },
-            "type": "expr"
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 76.73139484797417,
+                "y": 78.80719714131142
+            },
+            "dragging": false
         },
         {
             "id": "2",
             "position": {
-                "x": 50,
-                "y": 200
+                "x": 75.802165392116,
+                "y": -11.241138361284385
             },
             "data": {
                 "kind": "literal",
-                "value": 2,
-                "name": "Literal 2"
+                "value": "3",
+                "name": "Literal 3"
             },
-            "type": "expr"
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 75.802165392116,
+                "y": -11.241138361284385
+            },
+            "dragging": false
         },
         {
             "id": "3",
             "position": {
-                "x": 170,
-                "y": 150
+                "x": 184.16988230665092,
+                "y": 19.916688730705303
             },
             "data": {
                 "kind": "call",
-                "name": "+"
+                "name": ">",
+                "n_args": 2,
+                "output": true
             },
-            "type": "expr"
+            "type": "expr",
+            "width": 146,
+            "height": 86,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 184.16988230665092,
+                "y": 19.916688730705303
+            },
+            "dragging": false
         },
         {
             "id": "4",
             "position": {
-                "x": 370,
-                "y": 150
+                "x": 691.3604232422956,
+                "y": 23.54810133677313
             },
             "data": {
-                "kind": "call",
-                "name": "display"
+                "kind": "if",
+                "name": "if"
             },
-            "type": "expr"
+            "type": "if",
+            "width": 146,
+            "height": 132,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 691.3604232422956,
+                "y": 23.54810133677313
+            },
+            "dragging": false
         },
         {
             "id": "5",
             "position": {
-                "x": 570,
-                "y": 150
+                "x": 283.76037916024177,
+                "y": 131.49468713676885
+            },
+            "data": {
+                "kind": "literal",
+                "value": "\"foo\"",
+                "name": "Literal \"foo\""
+            },
+            "type": "expr",
+            "width": 69,
+            "height": 72,
+            "selected": true,
+            "positionAbsolute": {
+                "x": 283.76037916024177,
+                "y": 131.49468713676885
+            },
+            "dragging": false
+        },
+        {
+            "id": "7",
+            "position": {
+                "x": 261.76657100353907,
+                "y": 285.1505935526957
+            },
+            "data": {
+                "kind": "literal",
+                "value": "\"bar\"",
+                "name": "Literal \"bar\""
+            },
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 261.76657100353907,
+                "y": 285.1505935526957
+            },
+            "dragging": false
+        },
+        {
+            "id": "9",
+            "position": {
+                "x": 390.7660022655921,
+                "y": 119.05567674114573
             },
             "data": {
                 "kind": "call",
-                "name": "display"
+                "name": "display",
+                "n_args": 1,
+                "output": false
             },
-            "type": "expr"
+            "type": "expr",
+            "width": 146,
+            "height": 67,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 390.7660022655921,
+                "y": 119.05567674114573
+            },
+            "dragging": false
+        },
+        {
+            "id": "10",
+            "position": {
+                "x": 388.82172206886474,
+                "y": 270.7619796849687
+            },
+            "data": {
+                "kind": "call",
+                "name": "display",
+                "n_args": 1,
+                "output": false
+            },
+            "type": "expr",
+            "width": 146,
+            "height": 67,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 388.82172206886474,
+                "y": 270.7619796849687
+            },
+            "dragging": false
         }
     ],
     "edges": [
         {
-            "id": "e1",
-            "source": "1",
-            "target": "3",
+            "source": "2",
             "sourceHandle": "value",
+            "target": "3",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-2value-3arg-0",
+            "selected": false
         },
         {
-            "id": "e2",
-            "source": "2",
-            "target": "3",
+            "source": "0",
             "sourceHandle": "value",
+            "target": "3",
             "targetHandle": "arg-1",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-0value-3arg-1"
         },
         {
-            "id": "e3",
             "source": "3",
-            "target": "4",
             "sourceHandle": "value",
+            "target": "4",
+            "targetHandle": "cond",
+            "data": {
+                "kind": "data"
+            },
+            "id": "reactflow__edge-3value-4cond"
+        },
+        {
+            "source": "5",
+            "sourceHandle": "value",
+            "target": "9",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-5value-9arg-0"
         },
         {
-            "id": "e4",
-            "source": "4",
-            "target": "5",
-            "sourceHandle": "flow-out",
-            "targetHandle": "flow-in",
+            "source": "7",
+            "sourceHandle": "value",
+            "target": "10",
+            "targetHandle": "arg-0",
             "data": {
-                "kind": "flow"
-            }
+                "kind": "data"
+            },
+            "id": "reactflow__edge-7value-10arg-0"
+        },
+        {
+            "source": "9",
+            "sourceHandle": "flow-out",
+            "target": "4",
+            "targetHandle": "then",
+            "data": {
+                "kind": "control",
+                "branch": "then"
+            },
+            "id": "reactflow__edge-9flow-out-4then"
+        },
+        {
+            "source": "10",
+            "sourceHandle": "flow-out",
+            "target": "4",
+            "targetHandle": "else",
+            "data": {
+                "kind": "control",
+                "branch": "else"
+            },
+            "id": "reactflow__edge-10flow-out-4else"
         }
     ]
 }

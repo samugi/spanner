@@ -16,6 +16,7 @@ export type Call = {
     type: 'call',
     name: string
     args: Expression[]
+    output: boolean
 }
 
 export type Binding = {

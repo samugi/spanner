@@ -103,10 +103,8 @@
             "output": true
         },
         "if": {
-            "kind": "call",
-            "name": "if",
-            "n_args": 3,
-            "output": true
+            "kind": "if",
+            "name": "if"
         },
         "string=?": {
             "kind": "call",

@@ -73,12 +73,47 @@ function squashLets(
     } as Let | LetStar
 }
 
+// Collect all nodes reachable from a start node by following edges backwards (dependencies)
+function collectReachableNodes(
+    startNodeId: string,
+    allNodes: Node[],
+    allEdges: Edge[]
+): Set<string> {
+    const reachable = new Set<string>();
+    const queue = [startNodeId];
+
+    while (queue.length > 0) {
+        const nodeId = queue.shift()!;
+
+        if (reachable.has(nodeId)) {
+            continue;
+        }
+
+        reachable.add(nodeId);
+
+        // Find all nodes that this node depends on (incoming edges)
+        const dependencies = allEdges
+            .filter(e => e.target === nodeId)
+            .map(e => e.source);
+
+        queue.push(...dependencies);
+
+        // Also include parent node if it exists (for span hierarchy)
+        const node = allNodes.find(n => n.id === nodeId);
+        if (node?.parentId) {
+            queue.push(node.parentId);
+        }
+    }
+
+    return reachable;
+}
+
 // This is also where we wrap calls in spans
 export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, nodeSpan: Node | null, visited: Set<string>): Expression {
+    visited.add(nodeId);
     const node = nodes.find(n => n.id === nodeId)!
     const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
-
-    const symbol = newParamSymbol(node.id);
+    const symbol = newParamSymbol(node.id); // output symbol for this node
 
     switch (node.data.kind) {
         case 'literal': {
@@ -92,24 +127,105 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
             }
             return node.data.value;
         }
-        case 'call': {
+        case 'if': {
+            const condEdge = incoming_data.find(e => e.targetHandle === 'cond')!
+            const thenEdge = edges.find(e =>
+                e.target === node.id &&
+                e.targetHandle === 'then'
+            )!
+            const elseEdge = edges.find(e =>
+                e.target === node.id &&
+                e.targetHandle === 'else'
+            )!
 
-            let binding = {
-                sym: symbol, expr: {
-                    type: 'call',
-                    name: node.data.name,
-                    args: incoming_data
-                        .sort((a, b) => a.targetHandle!
-                            .localeCompare(b.targetHandle!))
-                        .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }))
+            const condSym = newParamSymbol(condEdge.source)
+            const thenNodes = collectReachableNodes(thenEdge.source, nodes, edges);
+            const elseNodes = collectReachableNodes(elseEdge.source, nodes, edges);
+
+            const thenVisited = new Set(visited);
+            const thenExpr = generateIrSubProgram(
+                nodes,
+                edges,
+                thenNodes,
+                thenVisited
+            )
+
+            const elseVisited = new Set(visited);
+            const elseExpr = generateIrSubProgram(
+                nodes,
+                edges,
+                elseNodes,
+                elseVisited
+            )
+
+            thenVisited.forEach(id => visited.add(id));
+            elseVisited.forEach(id => visited.add(id));
+
+            const ifExpr: Call = {
+                type: 'call',
+                name: 'if',
+                args: [
+                    { type: 'var', sym: condSym },
+                    thenExpr,
+                    elseExpr
+                ],
+                output: false
+            }
+
+            if (!previous) return ifExpr
+
+            return {
+                type: 'call',
+                name: 'begin',
+                output: false,
+                args: [ifExpr, previous]
+            }
+        }
+        case 'call': {
+            // prepare the arguments to the call
+            const args: VarRef[] = incoming_data
+                .sort((a, b) => a.targetHandle!
+                    .localeCompare(b.targetHandle!))
+                .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }));
+
+            let callExpr: Call = {
+                type: 'call',
+                name: node.data.name,
+                args: args,
+                output: node.data.output !== false
+            }
+
+            // handle calls with no output (if, display, etc)
+            if (node.data.output === false) {
+                if (!previous) {
+                    // no previous expression: just return the call
+                    return callExpr
                 }
+                // sequence: add previous to the tail of begin
+                return {
+                    type: 'call',
+                    name: 'begin',
+                    output: false,
+                    args: [
+                        callExpr,
+                        previous
+                    ]
+                } as Call
+            }
+
+            // normal call with output: use let
+            let binding = {
+                sym: symbol,
+                expr: callExpr
             };
 
             let expr: Expression | null = null;
+            // if there is a previous node, try to squash lets
             if (previous) {
                 expr = squashLets(previous, binding.sym, binding.expr as Expression);
             }
 
+            // no expression was generated by let squashing: create a new let
             if (!expr) {
                 // if there's a previous, we need to create a let, else just return the binding expr
                 expr = previous ? {
@@ -167,4 +283,36 @@ export function generateIR(nodeId: string, nodes: Node[], edges: Edge[], previou
             throw new Error(`Unknown node kind: ${node.data.kind}`)
         }
     }
+}
+
+export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
+    visited = visited || new Set<string>();
+    let result: Expression | null = null;
+
+    // visited all in traverseNodes?
+    while ([...traverseNodes].some(id => !visited!.has(id))) {
+        for (const n of allNodes) {
+            if (!traverseNodes.has(n.id) || visited.has(n.id)) {
+                continue;
+            }
+            // visit all the children of the current node n
+            const outgoing = allEdges.filter(e => e.source === n.id)
+            const depsSatisfied = outgoing
+                .every(e => visited.has(e.target))
+            if (depsSatisfied && !visited.has(n.id) && n.type !== 'span') {
+                visited.add(n.id);
+                const spanNode = n.parentId
+                    ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
+                    : null;
+                result = generateIR(n.id, allNodes, allEdges, result, spanNode || null, visited);
+                break;
+            } else if (!visited.has(n.id) && n.type === 'span') {
+                // span nodes are just containers, we can skip them
+                visited.add(n.id);
+                break;
+            }
+        }
+    }
+
+    return result!;
 }

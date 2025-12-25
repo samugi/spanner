@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Node, Edge } from 'reactflow'
-import { generateProgram } from './IrToScheme'
+import { generateProgram } from './compile'
+
 
 function normalizeScheme(code: string): string {
     return code
@@ -181,5 +182,183 @@ describe('generateProgram: spans + dataflow', () => {
 
         // ---- Assertions ----
         expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (p-lit1 1) (cx-span-sum (start-span "sum-span" cx-none))) (begin (let ((p-sum (+ p-lit1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum))) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
+    })
+
+    it('computes if condition correctly', () => {
+        const nodes: Node[] = [
+            {
+                id: "0",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "literal",
+                    value: 1,
+                    name: "Literal 1"
+                },
+                type: "expr",
+            },
+            {
+                id: "2",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "literal",
+                    value: 3,
+                    name: "Literal 3"
+                },
+            },
+            {
+                id: "3",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "call",
+                    name: ">",
+                    n_args: 2,
+                    output: true
+                },
+                type: "expr",
+            },
+            {
+                id: "4",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "if",
+                    name: "if"
+                },
+                type: "if",
+            },
+            {
+                id: "5",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "literal",
+                    value: "\"foo\"",
+                    name: "Literal \"foo\""
+                },
+                type: "expr",
+            },
+            {
+                id: "7",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "literal",
+                    value: "\"bar\"",
+                    name: "Literal \"bar\""
+                },
+                type: "expr",
+            },
+            {
+                id: "9",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "call",
+                    name: "display",
+                    n_args: 1,
+                    output: false
+                },
+                type: "expr",
+            },
+            {
+                id: "10",
+                position: { x: 0, y: 0 },
+                data: {
+                    kind: "call",
+                    name: "display",
+                    n_args: 1,
+                    output: false
+                },
+                type: "expr",
+            }
+        ]
+
+        const edges: Edge[] = [
+            {
+                source: "2",
+                sourceHandle: "value",
+                target: "3",
+                targetHandle: "arg-0",
+                data: {
+                    kind: "data"
+                },
+                id: "reactflow__edge-2value-3arg-0",
+                selected: false
+            },
+            {
+                source: "0",
+                sourceHandle: "value",
+                target: "3",
+                targetHandle: "arg-1",
+                data: {
+                    kind: "data"
+                },
+                id: "reactflow__edge-0value-3arg-1"
+            },
+            {
+                source: "3",
+                sourceHandle: "value",
+                target: "4",
+                targetHandle: "cond",
+                data: {
+                    kind: "data"
+                },
+                id: "reactflow__edge-3value-4cond"
+            },
+            {
+                source: "5",
+                sourceHandle: "value",
+                target: "9",
+                targetHandle: "arg-0",
+                data: {
+                    kind: "data"
+                },
+                id: "reactflow__edge-5value-9arg-0"
+            },
+            {
+                source: "7",
+                sourceHandle: "value",
+                target: "10",
+                targetHandle: "arg-0",
+                data: {
+                    kind: "data"
+                },
+                id: "reactflow__edge-7value-10arg-0"
+            },
+            {
+                source: "9",
+                sourceHandle: "flow-out",
+                target: "4",
+                targetHandle: "then",
+                data: {
+                    kind: "control",
+                    branch: "then"
+                },
+                id: "reactflow__edge-9flow-out-4then"
+            },
+            {
+                source: "10",
+                sourceHandle: "flow-out",
+                target: "4",
+                targetHandle: "else",
+                data: {
+                    kind: "control",
+                    branch: "else"
+                },
+                id: "reactflow__edge-10flow-out-4else"
+            }
+        ]
+
+        const program = generateProgram(
+            nodes,
+            edges
+        )
+
+        // ---- Assertions ----
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`
+        (let* ((p-2 3) (p-0 1) (p-3 (> p-2 p-0)))
+            (if
+                p-3
+                (let ((p-5 "foo")) (display p-5))
+                (let ((p-7 "bar")) (display p-7))
+            )
+        )
+        `))
     })
 })

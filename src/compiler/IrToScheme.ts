@@ -3,19 +3,12 @@ import { type Expression, type Symbol } from './types'
 import { generateIR } from './graphToIr'
 import { renderSpan } from './spec'
 
-export function generateProgram(
-    nodes: Node[],
-    edges: Edge[],
-): string {
-    return _generateProgram(nodes, edges, new Set(), null)
-}
-
 function renderSymbol(sym: Symbol): string {
     return `${sym.prefix}-${sym.id}`
 }
 
 // Generate Scheme from the intermediate representation
-function generateScheme(expr: Expression): string {
+export function generateScheme(expr: Expression): string {
     if (typeof expr !== 'object') {
         return expr.toString()
     }
@@ -52,27 +45,3 @@ function generateScheme(expr: Expression): string {
         }
     }
 }
-
-function _generateProgram(nodes: Node[], edges: Edge[], visited: Set<string>, result: Expression | null): string {
-    if (visited.size === nodes.length) {
-        return generateScheme(result || '');
-    }
-
-    for (const n of nodes) {
-        // visit all the children of the current node n
-        const outgoing = edges.filter(e => e.source === n.id)
-        if (outgoing.every(e => visited.has(e.target)) && !visited.has(n.id) && n.type === 'expr') {
-            visited.add(n.id);
-            let spanNode = n.parentId ? nodes.find(s => s.type === 'span' && s.id === n.parentId) : null;
-            result = generateIR(n.id, nodes, edges, result, spanNode || null, visited);
-            break;
-        } else if (n.type !== 'expr' && !visited.has(n.id)) {
-            // span nodes are just containers, we can skip them
-            visited.add(n.id);
-            break;
-        }
-    }
-
-    return generateScheme(_generateProgram(nodes, edges, visited, result));
-}
-
