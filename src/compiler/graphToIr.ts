@@ -4,16 +4,11 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type StartSpan, type EndSpan } from './types'
+import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef } from './types'
 import _ from 'lodash';
+import { newParamSymbol } from './spec';
+import { wrapInSpanIfNeeded } from './spans';
 
-function newParamSymbol(id: string): Symbol {
-    return { id, prefix: 'p' } as Symbol
-}
-
-function newCxSymbol(id: string): Symbol {
-    return { id, prefix: 'cx' } as Symbol
-}
 
 function usesVar(expr: Expression, sym: Symbol): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean' || typeof expr === 'string') {
@@ -98,53 +93,8 @@ function collectReachableNodes(
     return reachable;
 }
 
-function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Expression, nodeSpan: Node | null): Expression {
-    // Span wrapping:
-    const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
-    // if all nodes in the span have been visited it means we are at the root of the span
-    if (nodeSpan && nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
-        // if the span has a parent, we need to pass the parent context
-        let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
-        if (spanNode == undefined) {
-            throw new Error(`Span node with id ${nodeSpan.id} not found`);
-        }
-        let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-        let incomingCx = parentSpan ? parentSpan.id : 'none'
-
-        // wrap the call_expr in the span
-        let outgoingCx = nodeSpan.id
-
-        // a Span is just a Let that starts a span, runs some code, then ends the span
-        expr = {
-            type: 'let',
-            bindings: [
-                {
-                    sym: newCxSymbol(outgoingCx),
-                    expr: {
-                        type: 'start-span',
-                        spanName: nodeSpan.data.name,
-                        context: { type: 'var', sym: newCxSymbol(incomingCx) }
-                    } as StartSpan
-                }
-            ],
-            body: {
-                type: 'call',
-                name: 'begin',
-                args: [
-                    expr,
-                    {
-                        type: 'end-span',
-                        context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                    } as EndSpan
-                ]
-            } as Call
-        } as Let;
-    }
-    return expr;
-}
-
 // This is also where we wrap calls in spans
-function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, nodeSpan: Node | null, visited: Set<string>): Expression {
+function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
     visited.add(nodeId);
     const node = nodes.find(n => n.id === nodeId)!
     const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
@@ -159,7 +109,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                         bindings: [{ sym: symbol, expr: node.data.value }],
                         body: previous
                     } as Let;
-                return wrapInSpanIfNeeded(nodes, visited, squashed, nodeSpan);
+                return squashed;
             }
             return node.data.value;
         }
@@ -245,7 +195,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                     } as Call
                 }
 
-                return wrapInSpanIfNeeded(nodes, visited, callExpr, nodeSpan);
+                return callExpr;
             }
 
             // normal call with output: use let
@@ -270,7 +220,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 } as Expression : binding.expr as Expression;
             }
 
-            return wrapInSpanIfNeeded(nodes, visited, expr, nodeSpan);
+            return expr;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -304,7 +254,9 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
                 const spanNode = n.parentId
                     ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
                     : null;
-                result = generateIrSingleNode(n.id, allNodes, allEdges, result, spanNode || null, visited);
+                result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
+                // wrap node in span if needed
+                result = wrapInSpanIfNeeded(allNodes, visited, result, spanNode || null);
                 break;
             }
         }

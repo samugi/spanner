@@ -1,7 +1,7 @@
 // expression nodes data
 
 import type { ExprNodeData } from "../types";
-
+import type { Symbol } from "./types";
 
 // load from the config file at the root at config.json
 import configFile from '../../compiler-spec.json' assert { type: 'json' };
@@ -29,4 +29,12 @@ export type SpanOp =
 export function renderSpan(op: SpanOp): string {
     const template = span_templates[op.kind].template;
     return template.replace(/\$\{(\w+)\}/g, (_, key) => op[key as keyof SpanOp] as string);
+}
+
+export function newParamSymbol(id: string): Symbol {
+    return { id, prefix: 'p' } as Symbol
+}
+
+export function newCxSymbol(id: string): Symbol {
+    return { id, prefix: 'cx' } as Symbol
 }
