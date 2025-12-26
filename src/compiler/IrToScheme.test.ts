@@ -39,26 +39,31 @@ describe('graph → scheme compiler', () => {
         expect(normalizeScheme(program)).toContain(normalizeScheme('(+ 1 2)'))
     })
 
-    // TODO: update test to use let*
-    it('generates using let* when needed', () => {
+    it('generates using let*', () => {
         const nodes: Node[] = [
-
-            { id: '0', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
-            { id: '1', type: 'expr', data: { kind: 'literal', value: 2 }, position: { x: 0, y: 0 } },
-            { id: '2', type: 'expr', data: { kind: 'call', name: '+', n_args: 2 }, position: { x: 0, y: 0 } },
-            { id: '3', type: 'expr', data: { kind: 'call', name: '*', n_args: 2 }, position: { x: 0, y: 0 } },
-        ]
+            { id: '1', type: 'expr', data: { kind: 'literal', value: '1', name: 'Literal 1' }, position: { x: 0, y: 0 } },
+            { id: '2', type: 'expr', data: { kind: 'literal', value: '2', name: 'Literal 2' }, position: { x: 0, y: 0 } },
+            { id: '3', type: 'expr', data: { kind: 'call', name: '+', n_args: 2, output: true }, position: { x: 0, y: 0 } },
+            { id: '4', type: 'expr', data: { kind: 'call', name: '+', n_args: 2, output: true }, position: { x: 0, y: 0 } },
+            { id: '6', type: 'expr', data: { kind: 'call', name: '+', n_args: 2, output: true }, position: { x: 0, y: 0 } },
+        ];
 
         const edges: Edge[] = [
-            { id: 'e0', source: '0', target: '2', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
-            { id: 'e1', source: '1', target: '2', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
-            { id: 'e2', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
-            { id: 'e3', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
-        ]
+            { id: 'e1', source: '1', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e2', source: '2', target: '3', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e3', source: '3', target: '4', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e4', source: '2', target: '4', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e5', source: '3', target: '6', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e6', source: '4', target: '6', sourceHandle: 'value', targetHandle: 'arg-1', data: { kind: 'data' } },
+        ];
 
-        const program = generateProgram(nodes, edges)
-        expect(normalizeScheme(program)).toContain(normalizeScheme('(let ((p-1 2)) (* p-1 (+ 1 p-1)))'))
-    })
+        const program = generateProgram(nodes, edges);
+
+        // The UI output nests the calls directly because every node's value is consumed
+        expect(normalizeScheme(program)).toContain(
+            normalizeScheme('(let* ((p-2 2) (p-3 (+ 1 p-2))) (+ p-3 (+ p-3 p-2)))')
+        );
+    });
 
     it('wraps calls in spans', () => {
         const nodes: Node[] = [
@@ -182,14 +187,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none)))
-  (begin
-    (let ((cx-span-display (start-span "display-span" cx-span-sum)))
-      (begin
-        (let ((p-display (display (+ 1 p-lit2))))
-          (display p-lit2))
-        (end-span cx-span-display)))
-    (end-span cx-span-sum)))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none))) (begin (let ((cx-span-display (start-span "display-span" cx-span-sum))) (begin (begin (display (+ 1 p-lit2)) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
     })
 
     it('computes if condition correctly', () => {

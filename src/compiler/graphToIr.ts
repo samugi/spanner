@@ -98,6 +98,10 @@ function hasSingleOutput(nodes: Node[], edges: Edge[], nodeId: string): boolean 
     return outputs.length === 1;
 }
 
+function hasAnyDataOutput(edges: Edge[], nodeId: string): boolean {
+    return edges.some(e => e.source === nodeId && e.data?.kind === 'data');
+}
+
 function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Expression): Expression {
     if (!isExprObj(previous)) {
         return previous;
@@ -243,13 +247,15 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 output: node.data.output !== false
             }
 
-            // handle calls with no output (if, display, etc)
-            if (node.data.output === false) {
+            // handle calls with no data output: we just chain them in a begin
+            // to avoid unnecessary nesting
+            const hasDataOutput = hasAnyDataOutput(edges, nodeId);
+            if (!hasDataOutput) {
                 if (previous) {
                     callExpr = {
                         type: 'call',
                         name: 'begin',
-                        output: false,
+                        output: node.data.output,
                         args: [
                             callExpr,
                             previous
