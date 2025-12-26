@@ -4,7 +4,7 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef } from './types'
+import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan } from './types'
 import _ from 'lodash';
 import { newParamSymbol } from './spec';
 import { wrapInSpanIfNeeded } from './spans';
@@ -51,9 +51,9 @@ function squashLets(
     expr: Expression,
     outParam: Symbol,
     outExpr: Expression
-): Let | LetStar | null {
+): Let | LetStar {
     if (!isLetLike(expr)) {
-        return null
+        throw new Error('Can only squash lets into Let or LetStar expressions');
     }
 
     const needsLetStar = expr.bindings.some(b => usesVar(b.expr, outParam))
@@ -93,20 +93,83 @@ function collectReachableNodes(
     return reachable;
 }
 
+function hasSingleOutput(nodes: Node[], edges: Edge[], nodeId: string): boolean {
+    let outputs = edges.filter(e => e.source === nodeId && e.data && e.data.kind === 'data');
+    return outputs.length === 1;
+}
+
+function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Expression): Expression {
+    if (!isExprObj(previous)) {
+        return previous;
+    }
+
+    switch (previous.type) {
+        case 'call':
+            const newArgs = previous.args.map(arg => {
+                return replaceExprInPrevious(arg, oldSym, newExpr);
+            });
+            return {
+                type: 'call',
+                name: previous.name,
+                args: newArgs,
+                output: previous.output
+            } as Call;
+
+        case 'let':
+        case 'let*':
+            const newBindings = previous.bindings.map(b => {
+                let nExpr = replaceExprInPrevious(b.expr, oldSym, newExpr);
+                return {
+                    sym: b.sym,
+                    expr: nExpr
+                };
+            });
+
+            const newBody = replaceExprInPrevious(previous.body, oldSym, newExpr);
+
+            return {
+                type: previous.type,
+                bindings: newBindings,
+                body: newBody
+            } as Let | LetStar;
+
+        case 'var':
+            if (_.isEqual(previous.sym, oldSym)) {
+                return newExpr as VarRef;
+            }
+            return previous;
+
+        case 'start-span':
+        case 'end-span':
+            return previous;
+
+        default:
+            // Exhaustiveness check: If all cases are handled, color is type 'never' here
+            // If you add a new color to the type, TypeScript will error here
+            const _exhaustiveCheck: never = previous;
+            return _exhaustiveCheck;
+    }
+}
+
 // This is also where we wrap calls in spans
 function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
     visited.add(nodeId);
     const node = nodes.find(n => n.id === nodeId)!
-    const incoming_data = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
-    const symbol = newParamSymbol(node.id); // output symbol for this node
+    const incomingData = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
+    const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
 
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
-                const squashed = squashLets(previous, symbol, node.data.value) ||
+                // check if we should expand in previous directly instead of creating a let
+                if (hasSingleOutput(nodes, edges, nodeId)) {
+                    return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
+                }
+
+                const squashed = isLetLike(previous) && squashLets(previous, nodeOutSymbol, node.data.value) ||
                     {
                         type: 'let',
-                        bindings: [{ sym: symbol, expr: node.data.value }],
+                        bindings: [{ sym: nodeOutSymbol, expr: node.data.value }],
                         body: previous
                     } as Let;
                 return squashed;
@@ -114,7 +177,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             return node.data.value;
         }
         case 'if': {
-            const condEdge = incoming_data.find(e => e.targetHandle === 'cond')!
+            const condEdge = incomingData.find(e => e.targetHandle === 'cond')!
             const thenEdge = edges.find(e =>
                 e.target === node.id &&
                 e.targetHandle === 'then'
@@ -159,7 +222,6 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             }
 
             if (!previous) return ifExpr
-
             return {
                 type: 'call',
                 name: 'begin',
@@ -169,7 +231,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
         }
         case 'call': {
             // prepare the arguments to the call
-            const args: VarRef[] = incoming_data
+            const args: VarRef[] = incomingData
                 .sort((a, b) => a.targetHandle!
                     .localeCompare(b.targetHandle!))
                 .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }));
@@ -200,27 +262,29 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
 
             // normal call with output: use let
             let binding = {
-                sym: symbol,
+                sym: nodeOutSymbol,
                 expr: callExpr
             };
 
-            let expr: Expression | null = null;
             // if there is a previous node, try to squash lets
             if (previous) {
-                expr = squashLets(previous, binding.sym, binding.expr as Expression);
+                // check if we should expand in previous directly instead of creating a let
+                if (hasSingleOutput(nodes, edges, nodeId)) {
+                    return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
+                } else if (isLetLike(previous)) {
+                    return squashLets(previous, binding.sym, binding.expr as Expression);
+                } else {
+                    // has multiple outputs and a previous that is not a let: create a new let
+                    return {
+                        type: 'let',
+                        bindings: [binding],
+                        body: previous
+                    } as Expression;
+                }
             }
 
-            // no expression was generated by let squashing: create a new let
-            if (!expr) {
-                // if there's a previous, we need to create a let, else just return the binding expr
-                expr = previous ? {
-                    type: 'let',
-                    bindings: [binding],
-                    body: previous
-                } as Expression : binding.expr as Expression;
-            }
-
-            return expr;
+            // no previous: just return the call expr
+            return callExpr;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)

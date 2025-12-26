@@ -36,9 +36,10 @@ describe('graph → scheme compiler', () => {
 
         const program = generateProgram(nodes, edges)
 
-        expect(normalizeScheme(program)).toContain(normalizeScheme('(let ((p-2 2) (p-1 1)) (+ p-1 p-2))'))
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(+ 1 2)'))
     })
 
+    // TODO: update test to use let*
     it('generates using let* when needed', () => {
         const nodes: Node[] = [
 
@@ -56,7 +57,7 @@ describe('graph → scheme compiler', () => {
         ]
 
         const program = generateProgram(nodes, edges)
-        expect(normalizeScheme(program)).toContain(normalizeScheme('(let* ((p-1 2) (p-0 1) (p-2 (+ p-0 p-1))) (* p-1 p-2))'))
+        expect(normalizeScheme(program)).toContain(normalizeScheme('(let ((p-1 2)) (* p-1 (+ 1 p-1)))'))
     })
 
     it('wraps calls in spans', () => {
@@ -181,7 +182,14 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (p-lit1 1) (cx-span-sum (start-span "sum-span" cx-none))) (begin (let ((p-sum (+ p-lit1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum))) (begin (let ((p-display (display p-sum))) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none)))
+  (begin
+    (let ((cx-span-display (start-span "display-span" cx-span-sum)))
+      (begin
+        (let ((p-display (display (+ 1 p-lit2))))
+          (display p-lit2))
+        (end-span cx-span-display)))
+    (end-span cx-span-sum)))`))
     })
 
     it('computes if condition correctly', () => {
@@ -352,13 +360,7 @@ describe('generateProgram: spans + dataflow', () => {
 
         // ---- Assertions ----
         expect(normalizeScheme(program)).toBe(normalizeScheme(`
-        (let* ((p-2 3) (p-0 1) (p-3 (> p-2 p-0)))
-            (if
-                p-3
-                (let ((p-5 "foo")) (display p-5))
-                (let ((p-7 "bar")) (display p-7))
-            )
-        )
+        (if (> 3 1) (display "foo") (display "bar"))
         `))
     })
 
@@ -438,16 +440,15 @@ describe('generateProgram: spans + dataflow', () => {
 
         expect(normalizeScheme(program)).toBe(
             normalizeScheme(`
-(let* ((p-2 3) (p-0 1) (p-3 (> p-2 p-0)))
-  (if p-3
-      (let ((cx-span-11 (start-span "sda" cx-none)))
-        (begin
-          (let ((p-5 "foo")) (display p-5))
-          (end-span cx-span-11)
-        )
-      )
-      (let ((p-7 "bar")) (display p-7))
+(if
+  (> 3 1)
+  (let ((cx-span-11 (start-span "sda" cx-none)))
+    (begin
+      (display "foo")
+      (end-span cx-span-11)
+    )
   )
+  (display "bar")
 )
         `)
         )

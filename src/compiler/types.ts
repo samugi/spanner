@@ -45,7 +45,7 @@ export type Symbol = {
     prefix: string
 }
 
-export type ExprObj = Call | Let | LetStar
+export type ExprObj = Call | Let | LetStar | VarRef | StartSpan | EndSpan
 export type Expression = Literal | ExprObj | VarRef | StartSpan | EndSpan
 
 export function isExprObj(expr: Expression): expr is ExprObj {
