@@ -1,144 +1,89 @@
 {
     "nodes": [
         {
-            "id": "lit1",
-            "type": "expr",
+            "id": "1",
             "position": {
-                "x": 0,
-                "y": 0
+                "x": 42.67956628092429,
+                "y": -31.336659609468256
+            },
+            "data": {
+                "kind": "cond",
+                "name": "cond"
+            },
+            "type": "cond",
+            "width": 196,
+            "height": 100,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 42.67956628092429,
+                "y": -31.336659609468256
+            },
+            "dragging": false
+        },
+        {
+            "id": "2",
+            "position": {
+                "x": -144.16386899285322,
+                "y": -69.95418977439019
             },
             "data": {
                 "kind": "literal",
-                "value": 1
-            }
+                "value": "true",
+                "name": "Literal true"
+            },
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": -144.16386899285322,
+                "y": -69.95418977439019
+            },
+            "dragging": false
         },
         {
-            "id": "lit2",
-            "type": "expr",
+            "id": "3",
             "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "kind": "literal",
-                "value": 2
-            }
-        },
-        {
-            "id": "sum",
-            "type": "expr",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "kind": "call",
-                "name": "+",
-                "n_args": 2
-            },
-            "parentId": "span-sum"
-        },
-        {
-            "id": "display",
-            "type": "expr",
-            "position": {
-                "x": 0,
-                "y": 0
+                "x": -191.05962280457578,
+                "y": 59.0131339504791
             },
             "data": {
                 "kind": "call",
                 "name": "display",
-                "n_args": 1
+                "n_args": 1,
+                "output": false
             },
-            "parentId": "span-display"
-        },
-        {
-            "id": "display2",
             "type": "expr",
-            "position": {
-                "x": 0,
-                "y": 0
+            "width": 146,
+            "height": 67,
+            "selected": false,
+            "positionAbsolute": {
+                "x": -191.05962280457578,
+                "y": 59.0131339504791
             },
-            "data": {
-                "kind": "call",
-                "name": "display",
-                "n_args": 1
-            }
-        },
-        {
-            "id": "span-sum",
-            "type": "span",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "name": "sum-span"
-            }
-        },
-        {
-            "id": "span-display",
-            "type": "span",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "name": "display-span"
-            },
-            "parentId": "span-sum"
+            "dragging": false
         }
     ],
     "edges": [
         {
-            "id": "e1",
-            "source": "lit1",
-            "target": "sum",
+            "source": "2",
             "sourceHandle": "value",
-            "targetHandle": "arg-0",
+            "target": "1",
+            "targetHandle": "test-0",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-2value-1test-0"
         },
         {
-            "id": "e2",
-            "source": "lit2",
-            "target": "sum",
-            "sourceHandle": "value",
-            "targetHandle": "arg-1",
-            "data": {
-                "kind": "data"
-            }
-        },
-        {
-            "id": "e3",
-            "source": "sum",
-            "target": "display",
-            "sourceHandle": "value",
-            "targetHandle": "arg-0",
-            "data": {
-                "kind": "data"
-            }
-        },
-        {
-            "id": "e4",
-            "source": "display",
-            "target": "display2",
+            "source": "3",
             "sourceHandle": "flow-out",
-            "targetHandle": "flow-in",
+            "target": "1",
+            "targetHandle": "action-0",
             "data": {
                 "kind": "flow"
-            }
-        },
-        {
-            "id": "e5",
-            "source": "lit2",
-            "target": "display2",
-            "sourceHandle": "value",
-            "targetHandle": "arg-0",
-            "data": {
-                "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-3flow-out-1action-0"
         }
     ]
 }

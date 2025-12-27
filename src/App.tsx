@@ -186,7 +186,7 @@ function App() {
                       y: Math.random() * 400,
                     },
                     data: procedureDataMapping[selectedProcedure],
-                    type: data.kind === 'if' ? 'if' : 'expr',
+                    type: data.kind === 'if' ? 'if' : (data.kind === 'cond' ? 'cond' : 'expr'),
                   },
                 ])
               }}

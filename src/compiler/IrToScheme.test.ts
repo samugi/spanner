@@ -452,4 +452,123 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+    it('generates cond with multiple test/action clauses', () => {
+        const nodes: Node[] = [
+            {
+                id: '1',
+                type: 'cond',
+                position: { x: 0, y: 0 },
+                data: { kind: 'cond', name: 'cond' },
+            },
+
+            // --- clause 0 test: (= (* 1 2) 2)
+            {
+                id: '10',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: '*', n_args: 2, output: true },
+            },
+            {
+                id: '12',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '1' },
+            },
+            {
+                id: '13',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '2' },
+            },
+            {
+                id: '11',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: '=', n_args: 2, output: true },
+            },
+
+            // --- clause 0 action: (display 6565)
+            {
+                id: '4',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '6565' },
+            },
+            {
+                id: '3',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+            },
+
+            // --- clause 1 test: false
+            {
+                id: '5',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: 'false' },
+            },
+
+            // --- clause 1 action: (display (* 1 2))
+            {
+                id: '7',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: '*', n_args: 2, output: true },
+            },
+            {
+                id: '8',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '1' },
+            },
+            {
+                id: '9',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '2' },
+            },
+            {
+                id: '6',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+            },
+        ]
+
+        const edges: Edge[] = [
+            // clause 0 test: (* 1 2)
+            { id: 'e1', source: '12', sourceHandle: 'value', target: '10', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e2', source: '13', sourceHandle: 'value', target: '10', targetHandle: 'arg-1', data: { kind: 'data' } },
+
+            // (= (* 1 2) 2)
+            { id: 'e3', source: '10', sourceHandle: 'value', target: '11', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e4', source: '13', sourceHandle: 'value', target: '11', targetHandle: 'arg-1', data: { kind: 'data' } },
+
+            // test-0 → cond
+            { id: 'e5', source: '11', sourceHandle: 'value', target: '1', targetHandle: 'test-0', data: { kind: 'data' } },
+
+            // clause 0 action: display 6565
+            { id: 'e6', source: '4', sourceHandle: 'value', target: '3', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e7', source: '3', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-0', data: { kind: 'flow' } },
+
+            // clause 1 test: false
+            { id: 'e8', source: '5', sourceHandle: 'value', target: '1', targetHandle: 'test-1', data: { kind: 'data' } },
+
+            // clause 1 action: (* 1 2)
+            { id: 'e9', source: '8', sourceHandle: 'value', target: '7', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e10', source: '9', sourceHandle: 'value', target: '7', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e11', source: '7', sourceHandle: 'value', target: '6', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e12', source: '6', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-1', data: { kind: 'flow' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`(let ((p-13 2)) (cond ((= (* 1 p-13) p-13) ((display 6565))) (false ((display (* 1 2))))))`)
+        )
+    })
+
+
+
 })

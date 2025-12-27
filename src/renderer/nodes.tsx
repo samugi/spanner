@@ -6,6 +6,110 @@ export const nodeTypes = {
   expr: ExprNode,
   span: SpanNode,
   if: IfNode,
+  cond: CondNode,
+}
+
+function CondNode({ selected }: any) {
+  const [clauseCount, setClauseCount] = useState(1)
+
+  return (
+    <div
+      style={{
+        padding: '10px 12px',
+        border: selected ? '2px solid #2563eb' : '1px solid white',
+        minWidth: 170,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6
+      }}
+    >
+      {/* Title */}
+      <div style={{ textAlign: 'center', fontWeight: 600 }}>
+        cond
+      </div>
+
+      {/* FLOW IN */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="flow-in"
+        style={{ background: '#22d3ee' }}
+      />
+
+      {/* Clauses */}
+      <div style={{ fontSize: 10, color: '#aaa' }}>
+        {Array.from({ length: clauseCount }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 4,
+              position: 'relative',
+              paddingLeft: 16
+            }}
+          >
+            {/* TEST */}
+            <div style={{ position: 'relative' }}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`test-${i}`}
+                style={{
+                  left: -8,
+                  background: '#4ade80'
+                }}
+              />
+              <span>test</span>
+            </div>
+
+            {/* ACTION */}
+            <div style={{ position: 'relative' }}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`action-${i}`}
+                style={{
+                  left: -8,
+                  background: '#facc15'
+                }}
+              />
+              <span>action</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Expand */}
+      <button
+        onClick={() => setClauseCount(c => c + 1)}
+        style={{
+          marginTop: 4,
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          color: '#9ca3af',
+          cursor: 'pointer',
+          fontSize: 12,
+          padding: 2
+        }}
+        title="Add clause"
+      >
+        + clause
+      </button>
+
+      {/* FLOW OUT */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="flow-out"
+        style={{ background: '#22d3ee' }}
+      />
+    </div>
+  )
 }
 
 function IfNode({ selected }: any) {

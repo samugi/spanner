@@ -19,11 +19,17 @@ export type IfNodeData = {
     name: string
 }
 
+export type CondNodeData = {
+    kind: 'cond',
+    name: string
+}
+
 export type SpanNodeData = {
     name: string
 }
 
-export type ExprNodeData = LiteralNodeData | CallNodeData | IfNodeData
+export type ExprNodeData = LiteralNodeData | CallNodeData | IfNodeData | CondNodeData
 export type ExprNode = Node<ExprNodeData, 'expr'>
 export type SpanNode = Node<SpanNodeData, 'span'>
 export type IfNode = Node<IfNodeData, 'if'>
+export type CondNode = Node<CondNodeData, 'cond'>

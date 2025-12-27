@@ -111,6 +111,10 @@
             "name": "string=?",
             "n_args": 2,
             "output": true
+        },
+        "cond": {
+            "kind": "cond",
+            "name": "cond"
         }
     },
     "extra_procedures": {

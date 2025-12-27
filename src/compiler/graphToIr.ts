@@ -180,6 +180,71 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             }
             return node.data.value;
         }
+        // TODO: Validate and test
+        case 'cond': {
+            // handles are test-{i} and action-{i}
+            const branches = edges.filter(e => e.target === node.id
+                && e.targetHandle?.startsWith('action-'))
+                .map(e => {
+                    const testEdge = edges.find(te =>
+                        te.target === node.id &&
+                        te.targetHandle === e.targetHandle!.replace('action-', 'test-')
+                    )!;
+                    return {
+                        testEdge,
+                        actionEdge: e
+                    }
+                });
+
+            const condArgs: Call[] = [];
+            for (const br of branches) {
+                const testSym = newParamSymbol(br.testEdge.source);
+                const actionNodes = collectReachableNodes(br.actionEdge.source, edges);
+                const actionExpr = generateIrSubProgram(
+                    nodes,
+                    edges,
+                    actionNodes
+                )
+                actionNodes.forEach(id => visited.add(id));
+
+                // condArgs.push({ type: 'var', sym: testSym } as VarRef);
+                // condArgs.push(actionExpr);
+
+                const actionCall: Call = {
+                    type: 'call',
+                    name: '',
+                    args: [
+                        actionExpr
+                    ],
+                    output: node.data.output !== false
+                }
+                const testCall: Call = {
+                    type: 'call',
+                    name: '',
+                    args: [
+                        { type: 'var', sym: testSym } as VarRef,
+                        actionCall
+                    ],
+                    output: false
+                }
+                condArgs.push(testCall);
+            }
+
+            const condExpr: Call = {
+                type: 'call',
+                name: 'cond',
+                args: condArgs,
+                output: node.data.output !== false
+            }
+
+            if (!previous) return condExpr
+            return {
+                type: 'call',
+                name: 'begin',
+                output: false,
+                args: [condExpr, previous]
+            }
+        }
         case 'if': {
             const condEdge = incomingData.find(e => e.targetHandle === 'cond')!
             const thenEdge = edges.find(e =>
