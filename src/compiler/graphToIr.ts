@@ -93,7 +93,7 @@ function collectReachableNodes(
     return reachable;
 }
 
-function hasSingleOutput(nodes: Node[], edges: Edge[], nodeId: string): boolean {
+function hasSingleOutput(edges: Edge[], nodeId: string): boolean {
     let outputs = edges.filter(e => e.source === nodeId && e.data && e.data.kind === 'data');
     return outputs.length === 1;
 }
@@ -103,6 +103,8 @@ function hasAnyDataOutput(edges: Edge[], nodeId: string): boolean {
 }
 
 // Expand an expression within a previous expression by replacing all occurrences of oldSym with newExpr
+// oldSym is used as a placeholder during traversal, later it will be either kept as a VarRef
+// to be used within a let scope, or replaced with the actual expression as we are doing here.
 function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Expression): Expression {
     if (!isExprObj(previous)) {
         return previous;
@@ -110,6 +112,7 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 
     switch (previous.type) {
         case 'call':
+            // for calls, we need to replace in all arguments
             const newArgs = previous.args.map(arg => {
                 return replaceExprInPrevious(arg, oldSym, newExpr);
             });
@@ -122,6 +125,7 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 
         case 'let':
         case 'let*':
+            // for lets, we need to replace in all bindings and the body
             const newBindings = previous.bindings.map(b => {
                 let nExpr = replaceExprInPrevious(b.expr, oldSym, newExpr);
                 return {
@@ -131,7 +135,6 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             });
 
             const newBody = replaceExprInPrevious(previous.body, oldSym, newExpr);
-
             return {
                 type: previous.type,
                 bindings: newBindings,
@@ -139,6 +142,7 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             } as Let | LetStar;
 
         case 'var':
+            // for var, we check if it matches oldSym and just replace it
             if (_.isEqual(previous.sym, oldSym)) {
                 return newExpr as VarRef;
             }
@@ -146,6 +150,8 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 
         case 'start-span':
         case 'end-span':
+            // spans are ignored for replacement
+            // because they don't take part in data flow
             return previous;
 
         default:
@@ -164,7 +170,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
         case 'literal': {
             if (previous) {
                 // check if we should expand in previous directly instead of creating a new outer scope
-                if (hasSingleOutput(nodes, edges, nodeId)) {
+                if (hasSingleOutput(edges, nodeId)) {
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
@@ -332,7 +338,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             // There is a previous that takes this node's output:
 
             // check if we should expand in previous directly instead of creating a new scope
-            if (hasSingleOutput(nodes, edges, nodeId)) {
+            if (hasSingleOutput(edges, nodeId)) {
                 return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
             }
 
