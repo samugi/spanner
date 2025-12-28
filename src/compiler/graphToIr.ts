@@ -102,6 +102,7 @@ function hasAnyDataOutput(edges: Edge[], nodeId: string): boolean {
     return edges.some(e => e.source === nodeId && e.data?.kind === 'data');
 }
 
+// Expand an expression within a previous expression by replacing all occurrences of oldSym with newExpr
 function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Expression): Expression {
     if (!isExprObj(previous)) {
         return previous;
@@ -148,16 +149,13 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             return previous;
 
         default:
-            // Exhaustiveness check: If all cases are handled, color is type 'never' here
-            // If you add a new color to the type, TypeScript will error here
             const _exhaustiveCheck: never = previous;
             return _exhaustiveCheck;
     }
 }
 
-// This is also where we wrap calls in spans
+// Generate IR for a single node
 function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
-    visited.add(nodeId);
     const node = nodes.find(n => n.id === nodeId)!
     const incomingData = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
     const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
@@ -165,13 +163,17 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
-                // check if we should expand in previous directly instead of creating a let
+                // check if we should expand in previous directly instead of creating a new outer scope
                 if (hasSingleOutput(nodes, edges, nodeId)) {
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
-                const squashed = isLetLike(previous) && squashLets(previous, nodeOutSymbol, node.data.value) ||
-                    {
+                // If we can't expand in previous, we need to create a new outer scope
+                const squashed =
+                    // if previous is a let-like, we can squash the literal into it
+                    isLetLike(previous) && squashLets(previous, nodeOutSymbol, node.data.value)
+                    // else create a new let
+                    || {
                         type: 'let',
                         bindings: [{ sym: nodeOutSymbol, expr: node.data.value }],
                         body: previous
@@ -180,9 +182,8 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             }
             return node.data.value;
         }
-        // TODO: Validate and test
         case 'cond': {
-            // handles are test-{i} and action-{i}
+            // cond branches are in the format: test-{i} and action-{i}
             const branches = edges.filter(e => e.target === node.id
                 && e.targetHandle?.startsWith('action-'))
                 .map(e => {
@@ -199,6 +200,8 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             const condArgs: Call[] = [];
             for (const br of branches) {
                 const testSym = newParamSymbol(br.testEdge.source);
+                // actions are conditional to the test being true
+                // they must be treated as sub-programs so their scope is contained
                 const actionNodes = collectReachableNodes(br.actionEdge.source, edges);
                 const actionExpr = generateIrSubProgram(
                     nodes,
@@ -207,27 +210,19 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 )
                 actionNodes.forEach(id => visited.add(id));
 
-                // condArgs.push({ type: 'var', sym: testSym } as VarRef);
-                // condArgs.push(actionExpr);
-
-                const actionCall: Call = {
-                    type: 'call',
-                    name: '',
-                    args: [
-                        actionExpr
-                    ],
-                    output: node.data.output !== false
-                }
-                const testCall: Call = {
+                // create a call that represents the test and action
+                // the name is empty because cond condss are anonymous
+                // example: ( (= 1 1) (print "foo") )
+                const condCall: Call = {
                     type: 'call',
                     name: '',
                     args: [
                         { type: 'var', sym: testSym } as VarRef,
-                        actionCall
+                        actionExpr
                     ],
                     output: false
                 }
-                condArgs.push(testCall);
+                condArgs.push(condCall);
             }
 
             const condExpr: Call = {
@@ -237,7 +232,9 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 output: node.data.output !== false
             }
 
-            if (!previous) return condExpr
+            if (!previous) return condExpr;
+            // cond is combined with "previous" with a begin
+            // because cond has no output (so no need to create a let scope)
             return {
                 type: 'call',
                 name: 'begin',
@@ -257,7 +254,6 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             )!
 
             const condSym = newParamSymbol(condEdge.source)
-
             // `then` and `else` branches are treated as programs of their own
             // because they are not dependencies like other inputs, they are
             // control flow branches that are executed conditionally.
@@ -290,7 +286,9 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 output: false
             }
 
-            if (!previous) return ifExpr
+            if (!previous) return ifExpr;
+            // if is combined with previous with a begin
+            // because if has no output (so no need to create a let scope)
             return {
                 type: 'call',
                 name: 'begin',
@@ -300,11 +298,11 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
         }
         case 'call': {
             // prepare the arguments to the call
+            // each argument is a VarRef to the output of the incoming data nodes
             const args: VarRef[] = incomingData
-                .sort((a, b) => a.targetHandle!
-                    .localeCompare(b.targetHandle!))
                 .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }));
 
+            // create the call expression
             let callExpr: Call = {
                 type: 'call',
                 name: node.data.name,
@@ -312,50 +310,49 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 output: node.data.output !== false
             }
 
-            // handle calls with no data output: we just chain them in a begin
-            // to avoid unnecessary nesting
-            const hasDataOutput = hasAnyDataOutput(edges, nodeId);
-            if (!hasDataOutput) {
-                if (previous) {
-                    callExpr = {
-                        type: 'call',
-                        name: 'begin',
-                        output: node.data.output,
-                        args: [
-                            callExpr,
-                            previous
-                        ]
-                    } as Call
-                }
-
+            // if there is no previous expression, just return the call
+            if (!previous) {
                 return callExpr;
             }
 
-            // normal call with output: use let
+            // handle calls with a previous but no data output: we just chain them in a begin
+            const hasDataOutput = hasAnyDataOutput(edges, nodeId);
+            if (!hasDataOutput) {
+                return {
+                    type: 'call',
+                    name: 'begin',
+                    output: node.data.output,
+                    args: [
+                        callExpr,
+                        previous
+                    ]
+                } as Call
+            }
+
+            // There is a previous that takes this node's output:
+
+            // check if we should expand in previous directly instead of creating a new scope
+            if (hasSingleOutput(nodes, edges, nodeId)) {
+                return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
+            }
+
+            // output will be reused: create a let scope
             let binding = {
                 sym: nodeOutSymbol,
                 expr: callExpr
             };
 
-            // if there is a previous node, try to squash lets
-            if (previous) {
-                // check if we should expand in previous directly instead of creating a let
-                if (hasSingleOutput(nodes, edges, nodeId)) {
-                    return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
-                } else if (isLetLike(previous)) {
-                    return squashLets(previous, binding.sym, binding.expr as Expression);
-                } else {
-                    // has multiple outputs and a previous that is not a let: create a new let
-                    return {
-                        type: 'let',
-                        bindings: [binding],
-                        body: previous
-                    } as Expression;
-                }
+            if (isLetLike(previous)) {
+                return squashLets(previous, binding.sym, binding.expr as Expression);
+            } else {
+                // has multiple outputs and a previous that is not a let: create a new let
+                return {
+                    type: 'let',
+                    bindings: [binding],
+                    body: previous
+                } as Expression;
             }
 
-            // no previous: just return the call expr
-            return callExpr;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -368,13 +365,13 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
     const visited = new Set<string>();
     let result: Expression | null = null;
 
-    // visited all in traverseNodes?
+    // visit all nodes in traverseNodes
     while ([...traverseNodes].some(id => !visited!.has(id))) {
         for (const n of allNodes) {
             if (!traverseNodes.has(n.id) || visited.has(n.id)) {
                 continue;
             }
-            // visit all the children of the current node n
+            // fetch all the children of the current node n
             const outgoing = allEdges.filter(e => e.source === n.id)
 
             // check if all children (that are visitable) have been visited
@@ -384,14 +381,17 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
                 .filter(e => traverseNodes.has(e.target))
                 .every(e => visited.has(e.target));
 
-            if (allChildrenVisited && !visited.has(n.id)) {
+            if (allChildrenVisited) {
                 visited.add(n.id);
-                const spanNode = n.parentId
+                result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
+
+                // fetch, if any, the span that wraps this node
+                const span = n.parentId
                     ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
                     : null;
-                result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
-                // wrap node in span if needed
-                result = wrapInSpanIfNeeded(allNodes, visited, result, spanNode || null);
+                if (span) {
+                    result = wrapInSpanIfNeeded(allNodes, visited, result, span);
+                }
                 break;
             }
         }

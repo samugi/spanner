@@ -565,7 +565,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let ((p-13 2)) (cond ((= (* 1 p-13) p-13) ((display 6565))) (false ((display (* 1 2))))))`)
+            normalizeScheme(`(let ((p-13 2)) (cond ((= (* 1 p-13) p-13) (display 6565)) (false (display (* 1 2)))))`)
         )
     })
 

@@ -27,11 +27,11 @@ function dependsOn(
     return false
 }
 
-export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Expression, nodeSpan: Node | null): Expression {
+export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Expression, nodeSpan: Node): Expression {
     // Span wrapping:
     const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
     // if all nodes in the span have been visited it means we are at the root of the span
-    if (nodeSpan && nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
+    if (nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
         // if the span has a parent, we need to pass the parent context
         let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
         if (spanNode == undefined) {
