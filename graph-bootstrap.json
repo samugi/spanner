@@ -838,9 +838,9 @@
                 "output": true
             },
             "type": "expr",
-            "width": 271,
-            "height": 50,
-            "selected": true,
+            "width": 269,
+            "height": 48,
+            "selected": false,
             "positionAbsolute": {
                 "x": 1305.403971855178,
                 "y": 2226.062217121818
@@ -1711,8 +1711,7 @@
             "target": "63",
             "targetHandle": "then",
             "data": {
-                "kind": "control",
-                "branch": "then"
+                "kind": "control"
             },
             "id": "reactflow__edge-59flow-out-63then"
         },
@@ -1733,8 +1732,7 @@
             "target": "64",
             "targetHandle": "then",
             "data": {
-                "kind": "control",
-                "branch": "then"
+                "kind": "control"
             },
             "id": "reactflow__edge-43flow-out-64then",
             "selected": false
@@ -1745,10 +1743,20 @@
             "target": "64",
             "targetHandle": "else",
             "data": {
+                "kind": "control"
+            },
+            "id": "reactflow__edge-46flow-out-64else"
+        },
+        {
+            "source": "64",
+            "sourceHandle": "flow-out",
+            "target": "63",
+            "targetHandle": "else",
+            "data": {
                 "kind": "control",
                 "branch": "else"
             },
-            "id": "reactflow__edge-46flow-out-64else"
+            "id": "reactflow__edge-64flow-out-63else"
         }
     ]
 }
