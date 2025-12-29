@@ -47,6 +47,37 @@ function usesVar(expr: Expression, sym: Symbol): boolean {
     }
 }
 
+function squashBegins(
+    previous: Expression,
+    curr: Expression,
+): Call {
+    if (!isExprObj(curr) || curr.type !== 'call' || curr.name !== 'begin') {
+        throw new Error('Can only squash begins into Call expressions');
+    }
+
+    if (!isExprObj(previous) || previous.type !== 'call' || previous.name !== 'begin') {
+        return {
+            type: 'call',
+            name: 'begin',
+            output: curr.output,
+            args: [
+                ...curr.args,
+                previous,
+            ]
+        } as Call;
+    }
+
+    return {
+        type: 'call',
+        name: 'begin',
+        output: curr.output,
+        args: [
+            ...curr.args,
+            ...previous.args,
+        ]
+    }
+}
+
 function squashLets(
     expr: Expression,
     outParam: Symbol,
@@ -241,12 +272,13 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             if (!previous) return condExpr;
             // cond is combined with "previous" with a begin
             // because cond has no output (so no need to create a let scope)
-            return {
+            let beginExpr = {
                 type: 'call',
                 name: 'begin',
                 output: false,
-                args: [condExpr, previous]
-            }
+                args: [condExpr]
+            } as Call;
+            return squashBegins(previous, beginExpr);
         }
         case 'if': {
             const condEdge = incomingData.find(e => e.targetHandle === 'cond')!
@@ -295,12 +327,13 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             if (!previous) return ifExpr;
             // if is combined with previous with a begin
             // because if has no output (so no need to create a let scope)
-            return {
+            let beginExpr = {
                 type: 'call',
                 name: 'begin',
                 output: false,
-                args: [ifExpr, previous]
-            }
+                args: [ifExpr]
+            } as Call;
+            return squashBegins(previous, beginExpr);
         }
         case 'call': {
             // prepare the arguments to the call
@@ -324,15 +357,15 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             // handle calls with a previous but no data output: we just chain them in a begin
             const hasDataOutput = hasAnyDataOutput(edges, nodeId);
             if (!hasDataOutput) {
-                return {
+                let beginExpr = {
                     type: 'call',
                     name: 'begin',
                     output: node.data.output,
                     args: [
-                        callExpr,
-                        previous
+                        callExpr
                     ]
                 } as Call
+                return squashBegins(previous, beginExpr);
             }
 
             // There is a previous that takes this node's output:
