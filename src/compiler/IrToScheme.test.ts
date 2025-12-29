@@ -550,7 +550,7 @@ describe('generateProgram: spans + dataflow', () => {
 
             // clause 0 action: display 6565
             { id: 'e6', source: '4', sourceHandle: 'value', target: '3', targetHandle: 'arg-0', data: { kind: 'data' } },
-            { id: 'e7', source: '3', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-0', data: { kind: 'flow' } },
+            { id: 'e7', source: '3', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-0', data: { kind: 'control' } },
 
             // clause 1 test: false
             { id: 'e8', source: '5', sourceHandle: 'value', target: '1', targetHandle: 'test-1', data: { kind: 'data' } },
@@ -559,7 +559,7 @@ describe('generateProgram: spans + dataflow', () => {
             { id: 'e9', source: '8', sourceHandle: 'value', target: '7', targetHandle: 'arg-0', data: { kind: 'data' } },
             { id: 'e10', source: '9', sourceHandle: 'value', target: '7', targetHandle: 'arg-1', data: { kind: 'data' } },
             { id: 'e11', source: '7', sourceHandle: 'value', target: '6', targetHandle: 'arg-0', data: { kind: 'data' } },
-            { id: 'e12', source: '6', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-1', data: { kind: 'flow' } },
+            { id: 'e12', source: '6', sourceHandle: 'flow-out', target: '1', targetHandle: 'action-1', data: { kind: 'control' } },
         ]
 
         const program = generateProgram(nodes, edges)

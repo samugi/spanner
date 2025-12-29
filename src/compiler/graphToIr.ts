@@ -102,7 +102,8 @@ function squashLets(
 // Collect all nodes reachable from a start node by following edges backwards (dependencies)
 function collectReachableNodes(
     startNodeId: string,
-    allEdges: Edge[]
+    allEdges: Edge[],
+    rootEdge: Edge
 ): Set<string> {
     const reachable = new Set<string>();
     const queue = [startNodeId];
@@ -115,9 +116,16 @@ function collectReachableNodes(
         reachable.add(nodeId);
 
         // Find all nodes that this node depends on (incoming edges)
+        // and all those that depend on this node (outgoing edges)
         const dependencies = allEdges
-            .filter(e => e.target === nodeId)
+            .filter(e => e.target === nodeId && e !== rootEdge)
             .map(e => e.source);
+        const dependents = allEdges
+            .filter(e => e.source === nodeId && e !== rootEdge)
+            .map(e => e.target);
+
+        // Add them to the queue for further exploration
+        queue.push(...dependents);
         queue.push(...dependencies);
     }
 
@@ -239,7 +247,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 const testSym = newParamSymbol(br.testEdge.source);
                 // actions are conditional to the test being true
                 // they must be treated as sub-programs so their scope is contained
-                const actionNodes = collectReachableNodes(br.actionEdge.source, edges);
+                const actionNodes = collectReachableNodes(br.actionEdge.source, edges, br.actionEdge);
                 const actionExpr = generateIrSubProgram(
                     nodes,
                     edges,
@@ -298,19 +306,20 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             // So we collect all nodes reachable from the `then` and `else` nodes
             // and generate IR for those subgraphs separately, then add all those
             // nodes to the visited set to avoid re-processing them.
-            const thenNodes = collectReachableNodes(thenEdge.source, edges);
-            const elseNodes = collectReachableNodes(elseEdge.source, edges);
+            const thenNodes = collectReachableNodes(thenEdge.source, edges, thenEdge);
+            const elseNodes = collectReachableNodes(elseEdge.source, edges, elseEdge);
+
             const thenExpr = generateIrSubProgram(
                 nodes,
                 edges,
                 thenNodes
             )
+            thenNodes.forEach(id => visited.add(id));
             const elseExpr = generateIrSubProgram(
                 nodes,
                 edges,
                 elseNodes
             )
-            thenNodes.forEach(id => visited.add(id));
             elseNodes.forEach(id => visited.add(id));
 
             const ifExpr: Call = {
@@ -418,17 +427,23 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
             // have been visited
             const allChildrenVisited = outgoing
                 .filter(e => traverseNodes.has(e.target))
+                .filter(e => e.data?.kind !== 'control') // ignore control edges for dependency purposes
                 .every(e => visited.has(e.target));
 
             if (allChildrenVisited) {
                 visited.add(n.id);
+                // if n is a control node (a node with input control edges, like if/cond)
+                // we can reset result before continuing because it will visit them as sub programs
+                if (allEdges.some(e => e.target === n.id && e.data?.kind === 'control')) {
+                    result = null;
+                }
                 result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
 
                 // fetch, if any, the span that wraps this node
                 const span = n.parentId
                     ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
                     : null;
-                if (span) {
+                if (span && result && isExprObj(result)) {
                     result = wrapInSpanIfNeeded(allNodes, visited, result, span);
                 }
                 break;

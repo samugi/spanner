@@ -70,9 +70,9 @@ function App() {
   const onConnect = useCallback(
     (connection: Connection) => {
       let kind: EdgeKind = 'data'
-      let branch: 'then' | 'else' | undefined
+      let branch: string | undefined = undefined
 
-      if (connection.targetHandle === 'then' || connection.targetHandle === 'else') {
+      if (connection.targetHandle === 'then' || connection.targetHandle === 'else' || connection.targetHandle?.startsWith('action-')) {
         kind = 'control'
         branch = connection.targetHandle
       } else if (
