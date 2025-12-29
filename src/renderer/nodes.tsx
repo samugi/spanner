@@ -130,6 +130,14 @@ function IfNode({ selected }: any) {
         if
       </div>
 
+      {/* FLOW IN */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="flow-in"
+        style={{ background: '#22d3ee' }}
+      />
+
       {/* condition */}
       <div style={{ position: 'relative', height: 24 }}>
         <Handle
