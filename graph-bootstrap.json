@@ -1753,8 +1753,7 @@
             "target": "63",
             "targetHandle": "else",
             "data": {
-                "kind": "control",
-                "branch": "else"
+                "kind": "control"
             },
             "id": "reactflow__edge-64flow-out-63else"
         }

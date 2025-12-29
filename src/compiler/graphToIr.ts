@@ -410,7 +410,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
 
 // Main function to generate IR from a set of nodes and edges
 export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>): Expression {
-    const visited = new Set<string>();
+    let visited = new Set<string>();
     let result: Expression | null = null;
 
     // visit all nodes in traverseNodes
@@ -436,6 +436,7 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
                 // we can reset result before continuing because it will visit them as sub programs
                 if (allEdges.some(e => e.target === n.id && e.data?.kind === 'control')) {
                     result = null;
+                    visited = new Set<string>([n.id]);
                 }
                 result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
 
