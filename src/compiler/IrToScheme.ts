@@ -15,19 +15,20 @@ export function generateScheme(expr: Expression): string {
         case 'let':
             let letBindings = expr.bindings
                 .map(b => `(${renderSymbol(b.sym)} ${generateScheme(b.expr)})`)
-                .join(' ')
+                .join('\n')
 
-            return `(let (${letBindings}) ${generateScheme(expr.body)})`;
+            return `(let (${letBindings})\n  ${generateScheme(expr.body)})\n  `;
 
         case 'let*':
             let letStarBindings = expr.bindings
                 .map(b => `(${renderSymbol(b.sym)} ${generateScheme(b.expr)})`)
-                .join(' ')
-            return `(let* (${letStarBindings}) ${generateScheme(expr.body)})`
+                .join('\n')
+            return `(let* (${letStarBindings}) ${generateScheme(expr.body)})\n  `
 
-        case 'call':
-            return `(${expr.name} ${expr.args.map(arg => generateScheme(arg)).join(' ')})`;
-
+        case 'call': {
+            const separator = expr.name === 'begin' || expr.name === 'if' || expr.name === 'cond' ? '\n' : ' '
+            return `(${expr.name} ${expr.args.map(arg => generateScheme(arg)).join(separator)})`;
+        }
         case 'var':
             return renderSymbol(expr.sym);
 
