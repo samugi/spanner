@@ -132,9 +132,11 @@ function collectReachableNodes(
     return reachable;
 }
 
-function hasSingleOutput(edges: Edge[], nodeId: string): boolean {
-    let outputs = edges.filter(e => e.source === nodeId && e.data && e.data.kind === 'data');
-    return outputs.length === 1;
+function hasSingleOutput(edges: Edge[], node: Node): boolean {
+    let outputs = edges.filter(e => e.source === node.id && e.data && e.data.kind === 'data');
+    // also verify that it has no span. If a node has a span it automatically gains an output context
+    let hasSpan = node.parentId !== undefined && node.parentId !== null;
+    return outputs.length === 1 && !hasSpan;
 }
 
 function hasAnyDataOutput(edges: Edge[], nodeId: string): boolean {
@@ -208,7 +210,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
         case 'literal': {
             if (previous) {
                 // check if we should expand in previous directly instead of creating a new outer scope
-                if (hasSingleOutput(edges, node.id)) {
+                if (hasSingleOutput(edges, node)) {
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
@@ -410,7 +412,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             // There is a previous that takes this node's output:
 
             // check if we should expand in previous directly instead of creating a new scope
-            if (hasSingleOutput(edges, node.id)) {
+            if (hasSingleOutput(edges, node)) {
                 return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
             }
 
