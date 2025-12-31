@@ -1,7 +1,7 @@
 import type { Node, Edge } from 'reactflow'
 import type { SpanNode } from '../types'
 import type { Call, EndSpan, Expression, Let, StartSpan } from './types'
-import { newCxSymbol } from './spec'
+import { newCxSymbol, newParamSymbol, newRetSymbol } from './spec'
 
 // whether any node in targetIds depends on any node in sourceIds
 function dependsOn(
@@ -42,6 +42,7 @@ export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Ex
 
         // wrap the call_expr in the span
         let outgoingCx = nodeSpan.id
+        let retSymbol = newRetSymbol();
 
         // a Span is just a Let that starts a span, runs some code, then ends the span
         expr = {
@@ -54,17 +55,21 @@ export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Ex
                         spanName: nodeSpan.data.name,
                         context: { type: 'var', sym: newCxSymbol(incomingCx) }
                     } as StartSpan
+                },
+                {
+                    sym: retSymbol,
+                    expr: expr
                 }
             ],
             body: {
                 type: 'call',
                 name: 'begin',
                 args: [
-                    expr,
                     {
                         type: 'end-span',
                         context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                    } as EndSpan
+                    } as EndSpan,
+                    { type: 'var', sym: retSymbol }
                 ]
             } as Call
         } as Let;

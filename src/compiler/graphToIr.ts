@@ -200,16 +200,15 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 }
 
 // Generate IR for a single node
-function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
-    const node = nodes.find(n => n.id === nodeId)!
-    const incomingData = edges.filter(e => e.target === nodeId && e.data && e.data.kind === 'data')
+function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
+    const incomingData = edges.filter(e => e.target === node.id && e.data && e.data.kind === 'data')
     const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
 
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
                 // check if we should expand in previous directly instead of creating a new outer scope
-                if (hasSingleOutput(edges, nodeId)) {
+                if (hasSingleOutput(edges, node.id)) {
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
@@ -270,11 +269,21 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 condArgs.push(condCall);
             }
 
-            const condExpr: Call = {
+            let condExpr: Expression = {
                 type: 'call',
                 name: 'cond',
                 args: condArgs,
                 output: node.data.output !== false
+            }
+
+            //  -----------------------------
+            // | Span wrapping               |
+            //  -----------------------------
+            const span = node.parentId
+                ? nodes.find(s => s.type === 'span' && s.id === node.parentId)
+                : null;
+            if (span) {
+                condExpr = wrapInSpanIfNeeded(nodes, visited, condExpr, span);
             }
 
             if (!previous) return condExpr;
@@ -322,7 +331,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             )
             elseNodes.forEach(id => visited.add(id));
 
-            const ifExpr: Call = {
+            let ifExpr: Expression = {
                 type: 'call',
                 name: 'if',
                 args: [
@@ -331,6 +340,16 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                     elseExpr
                 ],
                 output: false
+            }
+
+            //  -----------------------------
+            // | Span wrapping               |
+            //  -----------------------------
+            const span = node.parentId
+                ? nodes.find(s => s.type === 'span' && s.id === node.parentId)
+                : null;
+            if (span) {
+                ifExpr = wrapInSpanIfNeeded(nodes, visited, ifExpr, span);
             }
 
             if (!previous) return ifExpr;
@@ -351,12 +370,23 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
                 .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }));
 
             // create the call expression
-            let callExpr: Call = {
+            let callExpr: Expression = {
                 type: 'call',
                 name: node.data.name,
                 args: args,
                 output: node.data.output !== false
             }
+
+            //  -----------------------------
+            // | Span wrapping               |
+            //  -----------------------------
+            const span = node.parentId
+                ? nodes.find(s => s.type === 'span' && s.id === node.parentId)
+                : null;
+            if (span) {
+                callExpr = wrapInSpanIfNeeded(nodes, visited, callExpr, span);
+            }
+
 
             // if there is no previous expression, just return the call
             if (!previous) {
@@ -364,7 +394,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             }
 
             // handle calls with a previous but no data output: we just chain them in a begin
-            const hasDataOutput = hasAnyDataOutput(edges, nodeId);
+            const hasDataOutput = hasAnyDataOutput(edges, node.id);
             if (!hasDataOutput) {
                 let beginExpr = {
                     type: 'call',
@@ -380,7 +410,7 @@ function generateIrSingleNode(nodeId: string, nodes: Node[], edges: Edge[], prev
             // There is a previous that takes this node's output:
 
             // check if we should expand in previous directly instead of creating a new scope
-            if (hasSingleOutput(edges, nodeId)) {
+            if (hasSingleOutput(edges, node.id)) {
                 return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
             }
 
@@ -438,15 +468,17 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
                     result = null;
                     visited = new Set<string>([n.id]);
                 }
-                result = generateIrSingleNode(n.id, allNodes, allEdges, result, visited);
 
-                // fetch, if any, the span that wraps this node
-                const span = n.parentId
-                    ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
-                    : null;
-                if (span && result && isExprObj(result)) {
-                    result = wrapInSpanIfNeeded(allNodes, visited, result, span);
-                }
+                const node = allNodes.find(no => no.id === n.id)!
+                // // fetch, if any, the span that wraps this node and apply span wrapping if needed
+                // const span = n.parentId
+                //     ? allNodes.find(s => s.type === 'span' && s.id === n.parentId)
+                //     : null;
+                // if (span && isExprObj(node.data?.value)) {
+                //     node.data.value = wrapInSpanIfNeeded(allNodes, visited, node.data.value, span);
+                // }
+
+                result = generateIrSingleNode(node, allNodes, allEdges, result, visited);
                 break;
             }
         }

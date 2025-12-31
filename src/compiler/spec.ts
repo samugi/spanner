@@ -38,3 +38,9 @@ export function newParamSymbol(id: string): Symbol {
 export function newCxSymbol(id: string): Symbol {
     return { id, prefix: 'cx' } as Symbol
 }
+
+export function newRetSymbol(): Symbol {
+    const id = (Math.random().toString(36).substring(2, 15));
+    const prefix = 'ret';
+    return { id, prefix } as Symbol
+}
