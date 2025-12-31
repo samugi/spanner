@@ -1,6 +1,6 @@
 import type { Node, Edge } from 'reactflow'
 import type { SpanNode } from '../types'
-import type { Call, EndSpan, Expression, Let, StartSpan } from './types'
+import type { Call, EndSpan, Expression, Let, LetStar, StartSpan } from './types'
 import { newCxSymbol, newParamSymbol, newRetSymbol } from './spec'
 
 // whether any node in targetIds depends on any node in sourceIds
@@ -31,7 +31,7 @@ export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Ex
     // Span wrapping:
     const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
     // if all nodes in the span have been visited it means we are at the root of the span
-    if (nodesWrappedBySpan.every((n: Node) => visited.has(n.id))) {
+    if (nodesWrappedBySpan.every((n: Node) => n.data?.kind === 'literal' || visited.has(n.id))) {
         // if the span has a parent, we need to pass the parent context
         let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
         if (spanNode == undefined) {
@@ -44,9 +44,9 @@ export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Ex
         let outgoingCx = nodeSpan.id
         let retSymbol = newRetSymbol();
 
-        // a Span is just a Let that starts a span, runs some code, then ends the span
+        // a Span is just a Let star that starts a span, runs some code, then ends the span
         expr = {
-            type: 'let',
+            type: 'let*',
             bindings: [
                 {
                     sym: newCxSymbol(outgoingCx),
@@ -72,7 +72,7 @@ export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Ex
                     { type: 'var', sym: retSymbol }
                 ]
             } as Call
-        } as Let;
+        } as LetStar;
     }
     return expr;
 }

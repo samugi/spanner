@@ -437,18 +437,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`
-(if
-  (> 3 1)
-  (let ((cx-span-11 (start-span "sda" cx-none)))
-    (begin
-      (display "foo")
-      (end-span cx-span-11)
-    )
-  )
-  (display "bar")
-)
-        `)
+            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (start-span "sda" cx-none)) (ret-zzyw3ka365 (display "foo"))) (begin (end-span cx-span-11) ret-zzyw3ka365)) (display "bar"))`)
         )
     })
 
