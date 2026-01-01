@@ -26,7 +26,8 @@ export type CondNodeData = {
 
 export type SpanNodeData = {
     kind: 'span',
-    name: string
+    name: string,
+    wrappedNodeIds: string[],
 }
 
 export type ExprNodeData = LiteralNodeData | CallNodeData | IfNodeData | CondNodeData

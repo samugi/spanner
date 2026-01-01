@@ -114,13 +114,13 @@ export function computeNodesAfterCreateSpan(
         if (n.type !== 'span') return false;
         if (n.id === newSpanId) return false;
         // check if all wrapped nodes are also wrapped by this span
-        let wrappedByParent = nodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
+        let wrappedByParent = n.data.wrappedNodeIds || [];
         return newSpanWraps.every(n => wrappedByParent.includes(n.id));
     })
     // pick the parent span that wraps the least nodes
     let parentSpan: Node | null = parents.reduce((best, current) => {
-        let bestWrapped = nodes.filter(n => n.parentId === best.id).length;
-        let currentWrapped = nodes.filter(n => n.parentId === current.id).length;
+        let bestWrapped = best.data.wrappedNodeIds.length;
+        let currentWrapped = current.data.wrappedNodeIds.length;
         return currentWrapped < bestWrapped ? current : best;
     }, parents[0]) || null;
 
@@ -130,10 +130,10 @@ export function computeNodesAfterCreateSpan(
     const childSpanIds = new Set(nodes.filter(n => {
         if (n.type !== 'span') return false;
         if (n.id === newSpanId) return false;
-        if (n.parentId && parentSpan && n.parentId !== parentSpan.id) return false;
+
         // check if the span depends only on nodes inside the new span
-        const wrapped = nodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
-        return wrapped.every(nId => newSpanWraps.map(n => n.id).includes(nId));
+        const wrapped = n.data.wrappedNodeIds || [];
+        return wrapped.every((nId: string) => newSpanWraps.map(n => n.id).includes(nId));
     }).map(n => n.id));
 
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
@@ -143,7 +143,7 @@ export function computeNodesAfterCreateSpan(
         type: 'span',
         position: { x: spanX, y: spanY },
         parentId: parentSpan?.id,
-        data: { name: newSpanName, kind: 'span' },
+        data: { name: newSpanName, kind: 'span', wrappedNodeIds: Array.from(wrappedNodeIds) },
         style: { width: 300, height: 200 },
     }
 
