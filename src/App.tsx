@@ -99,12 +99,12 @@ function App() {
   function createSpan() {
     const name = prompt('Enter span name:') || 'span'
     const selected = nodes.filter(
-      n => n.selected && n.type === 'expr'
+      n => n.selected && (n.type === 'expr' || n.type === 'if' || n.type === 'cond')
     )
 
     if (selected.length === 0) return
 
-    const spanId = `span-${currNodeId}`;
+    const spanId = `${currNodeId}`;
     setCurrNodeId((c: number) => c + 1);
 
     // sets the span as the parent node of the selected nodes

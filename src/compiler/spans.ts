@@ -12,8 +12,9 @@ function dependsOn(
 
     while (toVisit.length) {
         const current = toVisit.pop()!
-        if (sourceIds.has(current)) return true
+        if (visited.has(current)) continue
         visited.add(current)
+        if (sourceIds.has(current)) return true
 
         for (const e of edges) {
             if (e.target === current && !visited.has(e.source)) {
@@ -25,6 +26,38 @@ function dependsOn(
     return false
 }
 
+function findUpstreamIfCond(
+    startIds: Set<string>,
+    nodes: Node[],
+    edges: Edge[]
+): Set<string> {
+    const result = new Set<string>()
+    const queue = [...startIds]
+    const visited = new Set<string>()
+
+    while (queue.length > 0) {
+        const id = queue.shift()!
+        if (visited.has(id)) continue
+        visited.add(id)
+
+        const node = nodes.find(n => n.id === id)
+        if (!node) continue
+
+        if (node.type === 'if' || node.type === 'cond') {
+            result.add(id)
+            continue // stop walking past control nodes
+        }
+
+        // walk upstream (sources feeding this node)
+        edges
+            .filter(e => e.target === id)
+            .forEach(e => queue.push(e.source))
+    }
+
+    return result
+}
+
+
 export function computeNodesAfterCreateSpan(
     nodes: Node[],
     edges: Edge[],
@@ -32,25 +65,47 @@ export function computeNodesAfterCreateSpan(
     newSpanId: string,
     newSpanName: string
 ): Node[] {
-    const wrappedNodesIds = new Set(newSpanWraps.map(n => n.id))
-    // find the parent span of the new span, if any
-    const parentSpan = nodes.find(spanNode =>
-        // filter span nodes
-        spanNode.type === 'span' &&
-        // where there is a dependency between the nodes wrapped by the new
-        // span and the nodes wrapped by this span
-        dependsOn(new Set(
-            nodes.find(n => n.parentId === spanNode.id)?.id
-        ), wrappedNodesIds, edges)
-    )
+    const wrappedNodeIds = new Set(newSpanWraps.map(n => n.id))
+
+    const parentSpan = nodes.find(spanNode => {
+        if (spanNode.type !== 'span') return false
+
+        // nodes already inside this span
+        const spanChildIds = new Set(
+            nodes
+                .filter(n => n.parentId === spanNode.id)
+                .map(n => n.id)
+        )
+
+        // case 1: direct dependency
+        if (dependsOn(spanChildIds, wrappedNodeIds, edges)) {
+            return true
+        }
+
+        // case 2: wrapped nodes are fed by if/cond nodes
+        const ifCondNodeIds = findUpstreamIfCond(wrappedNodeIds, nodes, edges)
+
+        if (ifCondNodeIds.size > 0 &&
+            dependsOn(spanChildIds, ifCondNodeIds, edges)) {
+            return true
+        }
+    })
+
     // find the child spans that need to be reparented
     const childSpanIds = new Set(
         nodes
-            .filter(spanNode =>
-                spanNode.type === 'span' &&
-                dependsOn(wrappedNodesIds, new Set(
-                    nodes.find(n => n.parentId === spanNode.id)?.id
-                ), edges))
+            .filter(s =>
+                s.type === 'span' &&
+                dependsOn(
+                    wrappedNodeIds,
+                    new Set(
+                        nodes
+                            .filter(n => n.parentId === s.id)
+                            .map(n => n.id)
+                    ),
+                    edges
+                )
+            )
             .map(s => s.id)
     )
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
@@ -68,7 +123,7 @@ export function computeNodesAfterCreateSpan(
         newSpanNode,
         ...nodes.map(n => {
             // Move selected nodes into new span
-            if (wrappedNodesIds.has(n.id)) {
+            if (wrappedNodeIds.has(n.id)) {
                 return {
                     ...n,
                     parentId: newSpanId,
