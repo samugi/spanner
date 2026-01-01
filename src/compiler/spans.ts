@@ -1,5 +1,7 @@
 import type { Node, Edge } from 'reactflow'
 import type { SpanNode } from '../types'
+import type { Call, EndSpan, Expression, LetStar, StartSpan } from './types'
+import { newCxSymbol, newParamSymbol } from './spec'
 
 // whether any node in targetIds depends on any node in sourceIds
 function dependsOn(
@@ -24,6 +26,45 @@ function dependsOn(
     }
 
     return false
+}
+
+export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | null): Expression | null {
+    let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
+    let incomingCx = parentSpan ? parentSpan.id : 'none'
+
+    let outgoingCx = spanNode.id
+    let retSymbol = newParamSymbol(`ret-${spanNode.id}`);
+
+    let spanExpr: Expression = {
+        type: 'let*',
+        bindings: [
+            {
+                sym: newCxSymbol(outgoingCx),
+                expr: {
+                    type: 'start-span',
+                    spanName: spanNode.data.name,
+                    context: { type: 'var', sym: newCxSymbol(incomingCx) }
+                } as StartSpan
+            },
+            {
+                sym: retSymbol,
+                expr: expr!
+            }
+        ],
+        body: {
+            type: 'call',
+            name: 'begin',
+            args: [
+                {
+                    type: 'end-span',
+                    context: { type: 'var', sym: newCxSymbol(outgoingCx) }
+                } as EndSpan,
+                { type: 'var', sym: retSymbol }
+            ]
+        } as Call
+    } as LetStar;
+
+    return spanExpr;
 }
 
 function findUpstreamIfCond(
@@ -67,47 +108,34 @@ export function computeNodesAfterCreateSpan(
 ): Node[] {
     const wrappedNodeIds = new Set(newSpanWraps.map(n => n.id))
 
-    const parentSpan = nodes.find(spanNode => {
-        if (spanNode.type !== 'span') return false
-
-        // nodes already inside this span
-        const spanChildIds = new Set(
-            nodes
-                .filter(n => n.parentId === spanNode.id)
-                .map(n => n.id)
-        )
-
-        // case 1: direct dependency
-        if (dependsOn(spanChildIds, wrappedNodeIds, edges)) {
-            return true
-        }
-
-        // case 2: wrapped nodes are fed by if/cond nodes
-        const ifCondNodeIds = findUpstreamIfCond(wrappedNodeIds, nodes, edges)
-
-        if (ifCondNodeIds.size > 0 &&
-            dependsOn(spanChildIds, ifCondNodeIds, edges)) {
-            return true
-        }
+    // TODO change logic: parent span is the "closest" span that includes at least all the nodes wrapped by the new span
+    // i.e. the one with smallest scope among those with wider scope than the new span
+    let parents = nodes.filter(n => {
+        if (n.type !== 'span') return false;
+        if (n.id === newSpanId) return false;
+        // check if all wrapped nodes are also wrapped by this span
+        let wrappedByParent = nodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
+        return newSpanWraps.every(n => wrappedByParent.includes(n.id));
     })
+    // pick the parent span that wraps the least nodes
+    let parentSpan: Node | null = parents.reduce((best, current) => {
+        let bestWrapped = nodes.filter(n => n.parentId === best.id).length;
+        let currentWrapped = nodes.filter(n => n.parentId === current.id).length;
+        return currentWrapped < bestWrapped ? current : best;
+    }, parents[0]) || null;
 
     // find the child spans that need to be reparented
-    const childSpanIds = new Set(
-        nodes
-            .filter(s =>
-                s.type === 'span' &&
-                dependsOn(
-                    wrappedNodeIds,
-                    new Set(
-                        nodes
-                            .filter(n => n.parentId === s.id)
-                            .map(n => n.id)
-                    ),
-                    edges
-                )
-            )
-            .map(s => s.id)
-    )
+    // TODO: child spans are those that are fully contained in the new span
+    // we update them only if they did not have a parent before or if their parent was the parent of the new span (the one we just found)
+    const childSpanIds = new Set(nodes.filter(n => {
+        if (n.type !== 'span') return false;
+        if (n.id === newSpanId) return false;
+        if (n.parentId && parentSpan && n.parentId !== parentSpan.id) return false;
+        // check if the span depends only on nodes inside the new span
+        const wrapped = nodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
+        return wrapped.every(nId => newSpanWraps.map(n => n.id).includes(nId));
+    }).map(n => n.id));
+
     const spanX = Math.min(...newSpanWraps.map(n => n.position.x)) - 40
     const spanY = Math.min(...newSpanWraps.map(n => n.position.y)) - 40
     const newSpanNode: SpanNode = {
