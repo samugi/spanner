@@ -1,7 +1,5 @@
 import type { Node, Edge } from 'reactflow'
 import type { SpanNode } from '../types'
-import type { Call, EndSpan, Expression, Let, LetStar, StartSpan } from './types'
-import { newCxSymbol, newParamSymbol, newRetSymbol } from './spec'
 
 // whether any node in targetIds depends on any node in sourceIds
 function dependsOn(
@@ -25,56 +23,6 @@ function dependsOn(
     }
 
     return false
-}
-
-export function wrapInSpanIfNeeded(nodes: Node[], visited: Set<string>, expr: Expression, nodeSpan: Node): Expression {
-    // Span wrapping:
-    const nodesWrappedBySpan = nodes.filter(n => n.type === 'expr' && n.parentId === nodeSpan?.id);
-    // if all nodes in the span have been visited it means we are at the root of the span
-    if (nodesWrappedBySpan.every((n: Node) => n.data?.kind === 'literal' || visited.has(n.id))) {
-        // if the span has a parent, we need to pass the parent context
-        let spanNode = nodes.find(n => n.id === nodeSpan.id)!;
-        if (spanNode == undefined) {
-            throw new Error(`Span node with id ${nodeSpan.id} not found`);
-        }
-        let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-        let incomingCx = parentSpan ? parentSpan.id : 'none'
-
-        // wrap the call_expr in the span
-        let outgoingCx = nodeSpan.id
-        let retSymbol = newRetSymbol();
-
-        // a Span is just a Let star that starts a span, runs some code, then ends the span
-        expr = {
-            type: 'let*',
-            bindings: [
-                {
-                    sym: newCxSymbol(outgoingCx),
-                    expr: {
-                        type: 'start-span',
-                        spanName: nodeSpan.data.name,
-                        context: { type: 'var', sym: newCxSymbol(incomingCx) }
-                    } as StartSpan
-                },
-                {
-                    sym: retSymbol,
-                    expr: expr
-                }
-            ],
-            body: {
-                type: 'call',
-                name: 'begin',
-                args: [
-                    {
-                        type: 'end-span',
-                        context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                    } as EndSpan,
-                    { type: 'var', sym: retSymbol }
-                ]
-            } as Call
-        } as LetStar;
-    }
-    return expr;
 }
 
 export function computeNodesAfterCreateSpan(
@@ -112,7 +60,7 @@ export function computeNodesAfterCreateSpan(
         type: 'span',
         position: { x: spanX, y: spanY },
         parentId: parentSpan?.id,
-        data: { name: newSpanName },
+        data: { name: newSpanName, kind: 'span' },
         style: { width: 300, height: 200 },
     }
 

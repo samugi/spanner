@@ -69,7 +69,7 @@ describe('graph → scheme compiler', () => {
         const nodes: Node[] = [
             { id: '1', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
             { id: '2', type: 'expr', data: { kind: 'call', name: 'display', n_args: 1 }, position: { x: 0, y: 0 }, parentId: 'span-1' },
-            { id: 'span-1', type: 'span', data: { name: 'my-span' }, position: { x: 0, y: 0 } },
+            { id: 'span-1', type: 'span', data: { name: 'my-span', kind: 'span' }, position: { x: 0, y: 0 } },
         ]
 
         const edges: Edge[] = [
@@ -122,13 +122,13 @@ describe('generateProgram: spans + dataflow', () => {
                 id: 'span-sum',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'sum-span' },
+                data: { name: 'sum-span', kind: 'span' },
             },
             {
                 id: 'span-display',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'display-span' },
+                data: { name: 'display-span', kind: 'span' },
                 parentId: 'span-sum',
             }
         ]
@@ -187,7 +187,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none))) (begin (let ((cx-span-display (start-span "display-span" cx-span-sum))) (begin (begin (display (+ 1 p-lit2)) (display p-lit2)) (end-span cx-span-display))) (end-span cx-span-sum)))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none)) (p-ret-span-sum (let* ((p-sum (+ 1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum)) (p-ret-span-display (begin (display p-sum) (display p-lit2)))) (begin (end-span cx-span-display) p-ret-span-display)))) (begin (end-span cx-span-sum) p-ret-span-sum))`))
     })
 
     it('computes if condition correctly', () => {
@@ -358,8 +358,8 @@ describe('generateProgram: spans + dataflow', () => {
 
         // ---- Assertions ----
         expect(normalizeScheme(program)).toBe(normalizeScheme(`
-        (if (> 3 1) (display "foo") (display "bar"))
-        `))
+            (if (> 3 1) (display "foo") (display "bar"))
+            `))
     })
 
     it('wraps only the then-branch of an if in a span', () => {
@@ -368,7 +368,7 @@ describe('generateProgram: spans + dataflow', () => {
                 id: 'span-11',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'sda' },
+                data: { name: 'sda', kind: 'span' },
             },
             {
                 id: '0',
@@ -437,7 +437,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (start-span "sda" cx-none)) (ret-zzyw3ka365 (display "foo"))) (begin (end-span cx-span-11) ret-zzyw3ka365)) (display "bar"))`)
+            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (start-span "sda" cx-none)) (p-ret-span-11 (let ((p-5 "foo")) (display p-5)))) (begin (end-span cx-span-11) p-ret-span-11)) (display "bar"))`)
         )
     })
 

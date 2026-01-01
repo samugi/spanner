@@ -25,6 +25,7 @@ export type CondNodeData = {
 }
 
 export type SpanNodeData = {
+    kind: 'span',
     name: string
 }
 
