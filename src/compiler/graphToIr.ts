@@ -7,6 +7,7 @@ import type { Node, Edge } from 'reactflow'
 import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan } from './types'
 import _ from 'lodash';
 import { newCxSymbol, newParamSymbol } from './spec';
+import { wrapInSpan } from './spans';
 
 function usesVar(expr: Expression, sym: Symbol): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean' || typeof expr === 'string') {
@@ -220,9 +221,38 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 }
 
 // Generate IR for a single node
-function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>): Expression {
+function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>, traverseNodes: Set<string>): Expression {
     const incomingData = edges.filter(e => e.target === node.id && e.data && e.data.kind === 'data')
     const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
+
+    const parentSpanId = node.parentId;
+    const parentSpan = parentSpanId ? nodes.find(n => n.id === parentSpanId) : null;
+    // if there is a parent span for the current node, process the subprogram wrapped in the span first
+    if (parentSpanId && parentSpan && !visited.has(parentSpanId) && traverseNodes.has(parentSpanId)) {
+        const subProgram = new Set(nodes.filter(n => n.parentId === parentSpanId)?.map(n => n.id));
+        if (subProgram) {
+            let spanBodyExpr = generateIrSubProgram(nodes, edges, subProgram);
+            // here we need to merge the expression with previous if any
+            // differently depending on what expressino previous is, let, begin, etc.
+            // if (previous) {
+            // let's use a let expression to bind the output of this stuff to
+            // a symbol. The symbol is the last node's output in the span body
+
+            // to find the last node we just traverse the subprogram and find the only
+            // node that has an edge going out of the span
+            const lastNodeInSubProgram = Array.from(subProgram).find(id => {
+                return edges.some(e => e.source === id && !subProgram.has(e.target));
+            });
+
+            const lastNodeSymbol = lastNodeInSubProgram ? newParamSymbol(lastNodeInSubProgram) : null;
+
+            spanBodyExpr = wrapInSpan(parentSpan, nodes, spanBodyExpr, previous, lastNodeSymbol)!;
+            visited.add(parentSpanId);
+            //add all nodes in the subprogram to visited
+            subProgram.forEach(id => visited.add(id));
+            return spanBodyExpr;
+        }
+    }
 
     switch (node.data.kind) {
         case 'literal': {
@@ -432,49 +462,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
 
         }
         case 'span': {
-            // if we are here, it means it's time to process the span node itself
-            // because we already check that all spans wrapped by the node have been visited
-            // and also all children spans were visited (this is all done in generateIrSubProgram)
-            let spanNode = nodes.find(n => n.id === node.id)!;
-            if (spanNode == undefined) {
-                throw new Error(`Span node with id ${node.id} not found`);
-            }
-            let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-            let incomingCx = parentSpan ? parentSpan.id : 'none'
-
-            let outgoingCx = node.id
-            let retSymbol = newParamSymbol(`ret-${node.id}`);
-
-            let spanExpr: Expression = {
-                type: 'let*',
-                bindings: [
-                    {
-                        sym: newCxSymbol(outgoingCx),
-                        expr: {
-                            type: 'start-span',
-                            spanName: node.data.name,
-                            context: { type: 'var', sym: newCxSymbol(incomingCx) }
-                        } as StartSpan
-                    },
-                    {
-                        sym: retSymbol,
-                        expr: previous!
-                    }
-                ],
-                body: {
-                    type: 'call',
-                    name: 'begin',
-                    args: [
-                        {
-                            type: 'end-span',
-                            context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                        } as EndSpan,
-                        { type: 'var', sym: retSymbol }
-                    ]
-                } as Call
-            } as LetStar;
-
-            return spanExpr;
+            return previous!;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -540,10 +528,10 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
 
             } else {
                 // spans use the parentId relationship to determine hierarchy, unlike other nodes that use edges
-                const childrenSpans = allNodes.filter(no => no.parentId === n.id && no.type === 'span');
+                const childrenSpans = allNodes.filter(no => no.parentId === n.id && no.type === 'span' && traverseNodes.has(no.id));
                 const allChildrenSpansVisited = childrenSpans.every(cs => visited.has(cs.id));
 
-                const childrenNodes = allNodes.filter(no => no.parentId === n.id && no.type !== 'span');
+                const childrenNodes = allNodes.filter(no => no.parentId === n.id && no.type !== 'span' && traverseNodes.has(no.id));
                 const allChildrenNodesVisited = childrenNodes.every(cn => visited.has(cn.id));
 
                 allChildrenVisited = allChildrenSpansVisited && allChildrenNodesVisited;
@@ -562,7 +550,7 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
 
                 const node = allNodes.find(no => no.id === n.id)!;
 
-                result = generateIrSingleNode(node, allNodes, allEdges, result, visited);
+                result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
                 break;
             }
         }

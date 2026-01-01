@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Node, Edge } from 'reactflow'
 import { generateProgram } from './compile'
+import { wrap } from 'lodash'
 
 
 function normalizeScheme(code: string): string {
@@ -69,7 +70,7 @@ describe('graph → scheme compiler', () => {
         const nodes: Node[] = [
             { id: '1', type: 'expr', data: { kind: 'literal', value: 1 }, position: { x: 0, y: 0 } },
             { id: '2', type: 'expr', data: { kind: 'call', name: 'display', n_args: 1 }, position: { x: 0, y: 0 }, parentId: 'span-1' },
-            { id: 'span-1', type: 'span', data: { name: 'my-span', kind: 'span' }, position: { x: 0, y: 0 } },
+            { id: 'span-1', type: 'span', data: { name: 'my-span', kind: 'span', wrappedNodeIds: ['2'] }, position: { x: 0, y: 0 } },
         ]
 
         const edges: Edge[] = [
@@ -122,13 +123,13 @@ describe('generateProgram: spans + dataflow', () => {
                 id: 'span-sum',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'sum-span', kind: 'span' },
+                data: { name: 'sum-span', kind: 'span', wrappedNodeIds: ['sum'] },
             },
             {
                 id: 'span-display',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'display-span', kind: 'span' },
+                data: { name: 'display-span', kind: 'span', wrappedNodeIds: ['display'] },
                 parentId: 'span-sum',
             }
         ]
@@ -187,7 +188,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none)) (p-ret-span-sum (let* ((p-sum (+ 1 p-lit2)) (cx-span-display (start-span "display-span" cx-span-sum)) (p-ret-span-display (begin (display p-sum) (display p-lit2)))) (begin (end-span cx-span-display) p-ret-span-display)))) (begin (end-span cx-span-sum) p-ret-span-sum))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-lit2 2) (cx-span-sum (start-span "sum-span" cx-none)) (p-sum (+ 1 p-lit2))) (begin (end-span cx-span-sum) (let* ((cx-span-display (start-span "display-span" cx-span-sum)) (p-display (display p-sum))) (begin (end-span cx-span-display) (display p-lit2) p-display)) p-sum))`))
     })
 
     it('computes if condition correctly', () => {
@@ -368,7 +369,7 @@ describe('generateProgram: spans + dataflow', () => {
                 id: 'span-11',
                 type: 'span',
                 position: { x: 0, y: 0 },
-                data: { name: 'sda', kind: 'span' },
+                data: { name: 'sda', kind: 'span', wrappedNodeIds: ['5', '9'] },
             },
             {
                 id: '0',
@@ -437,7 +438,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (start-span "sda" cx-none)) (p-ret-span-11 (let ((p-5 "foo")) (display p-5)))) (begin (end-span cx-span-11) p-ret-span-11)) (display "bar"))`)
+            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (start-span "sda" cx-none)) (p-9 (let ((p-5 "foo")) (display p-5)))) (begin (end-span cx-span-11) p-9)) (display "bar"))`)
         )
     })
 

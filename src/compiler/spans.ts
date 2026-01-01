@@ -1,6 +1,6 @@
 import type { Node, Edge } from 'reactflow'
 import type { SpanNode } from '../types'
-import type { Call, EndSpan, Expression, LetStar, StartSpan } from './types'
+import type { Call, EndSpan, Expression, LetStar, StartSpan, Symbol } from './types'
 import { newCxSymbol, newParamSymbol } from './spec'
 
 // whether any node in targetIds depends on any node in sourceIds
@@ -28,12 +28,29 @@ function dependsOn(
     return false
 }
 
-export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | null): Expression | null {
+export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | null, previous: Expression | null, lastNodeSymbol: Symbol | null): Expression {
     let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
     let incomingCx = parentSpan ? parentSpan.id : 'none'
 
+
+
     let outgoingCx = spanNode.id
-    let retSymbol = newParamSymbol(`ret-${spanNode.id}`);
+    // TODO: are we ok with the returned symbol being the last node symbol?
+    let retSymbol = lastNodeSymbol ? lastNodeSymbol : newParamSymbol(`ret-${spanNode.id}`);
+
+    // TODO: if the current span is parent of the previous, it should be ended after
+    // the previous expression, not before
+    let callBodyArgs: Call['args'] = [
+        {
+            type: 'end-span',
+            context: { type: 'var', sym: newCxSymbol(outgoingCx) }
+        } as EndSpan
+    ];
+    if (previous !== null) {
+        callBodyArgs.push(previous);
+    }
+    callBodyArgs.push({ type: 'var', sym: retSymbol });
+
 
     let spanExpr: Expression = {
         type: 'let*',
@@ -54,13 +71,7 @@ export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | nul
         body: {
             type: 'call',
             name: 'begin',
-            args: [
-                {
-                    type: 'end-span',
-                    context: { type: 'var', sym: newCxSymbol(outgoingCx) }
-                } as EndSpan,
-                { type: 'var', sym: retSymbol }
-            ]
+            args: callBodyArgs
         } as Call
     } as LetStar;
 

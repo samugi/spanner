@@ -2,152 +2,53 @@
     "nodes": [
         {
             "id": "1",
+            "type": "expr",
             "position": {
-                "x": 350.85342474910385,
-                "y": 461.55337679000536
+                "x": 0,
+                "y": 0
             },
             "data": {
-                "kind": "call",
-                "name": "+",
-                "n_args": 2,
-                "output": true
-            },
-            "type": "expr",
-            "width": 146,
-            "height": 86,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 350.85342474910385,
-                "y": 461.55337679000536
-            },
-            "dragging": false
+                "kind": "literal",
+                "value": 1
+            }
         },
         {
             "id": "2",
+            "type": "expr",
             "position": {
-                "x": 546.8550951504351,
-                "y": 583.3509242955988
+                "x": 0,
+                "y": 0
             },
             "data": {
                 "kind": "call",
-                "name": "+",
-                "n_args": 2,
-                "output": true
+                "name": "display",
+                "n_args": 1
             },
-            "type": "expr",
-            "width": 146,
-            "height": 86,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 546.8550951504351,
-                "y": 583.3509242955988
-            },
-            "dragging": false
+            "parentId": "span-1"
         },
         {
-            "id": "3",
+            "id": "span-1",
+            "type": "span",
             "position": {
-                "x": 113.08151610300195,
-                "y": 415.8115417593342
+                "x": 0,
+                "y": 0
             },
             "data": {
-                "kind": "literal",
-                "value": "1",
-                "name": "Literal 1"
-            },
-            "type": "expr",
-            "width": 67,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 113.08151610300195,
-                "y": 415.8115417593342
-            },
-            "dragging": false
-        },
-        {
-            "id": "4",
-            "position": {
-                "x": 134.5222242069125,
-                "y": 560.572992125734
-            },
-            "data": {
-                "kind": "literal",
-                "value": "2",
-                "name": "Literal 2"
-            },
-            "type": "expr",
-            "width": 67,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 134.5222242069125,
-                "y": 560.572992125734
-            },
-            "dragging": false
-        },
-        {
-            "id": "5",
-            "position": {
-                "x": 147.54153702033486,
-                "y": 716.7456922185386
-            },
-            "data": {
-                "kind": "literal",
-                "value": "3",
-                "name": "Literal 3"
-            },
-            "type": "expr",
-            "width": 67,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 147.54153702033486,
-                "y": 716.7456922185386
-            },
-            "dragging": false
+                "kind": "span",
+                "name": "my-span"
+            }
         }
     ],
     "edges": [
         {
-            "source": "3",
-            "sourceHandle": "value",
-            "target": "1",
-            "targetHandle": "arg-0",
-            "data": {
-                "kind": "data"
-            },
-            "id": "reactflow__edge-3value-1arg-0"
-        },
-        {
-            "source": "4",
-            "sourceHandle": "value",
-            "target": "1",
-            "targetHandle": "arg-1",
-            "data": {
-                "kind": "data"
-            },
-            "id": "reactflow__edge-4value-1arg-1"
-        },
-        {
+            "id": "e1",
             "source": "1",
-            "sourceHandle": "value",
             "target": "2",
+            "sourceHandle": "value",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            },
-            "id": "reactflow__edge-1value-2arg-0"
-        },
-        {
-            "source": "5",
-            "sourceHandle": "value",
-            "target": "2",
-            "targetHandle": "arg-1",
-            "data": {
-                "kind": "data"
-            },
-            "id": "reactflow__edge-5value-2arg-1"
+            }
         }
     ]
 }
