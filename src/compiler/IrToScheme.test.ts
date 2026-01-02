@@ -559,6 +559,74 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+    it('chains ifs correctly', () => {
+        const nodes: Node[] = [
+            {
+                id: '7',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '9999' },
+            },
+            {
+                id: '65',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+            },
+            {
+                id: '67',
+                type: 'if',
+                position: { x: 0, y: 0 },
+                data: { kind: 'if', name: 'if' },
+            },
+            {
+                id: '69',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '1' },
+            },
+            {
+                id: '70',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '2' },
+            },
+            {
+                id: '71',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '3' },
+            },
+            {
+                id: '72',
+                type: 'if',
+                position: { x: 0, y: 0 },
+                data: { kind: 'if', name: 'if' },
+            },
+        ]
+
+        const edges: Edge[] = [
+            { id: 'e1', source: '7', target: '67', sourceHandle: 'value', targetHandle: 'cond', data: { kind: 'data' } },
+            { id: 'e2', source: '65', target: '67', sourceHandle: 'flow-out', targetHandle: 'then', data: { kind: 'control', branch: 'then' } },
+            { id: 'e3', source: '72', target: '67', sourceHandle: 'flow-out', targetHandle: 'else', data: { kind: 'control', branch: 'else' } },
+
+            { id: 'e4', source: '69', target: '72', sourceHandle: 'value', targetHandle: 'cond', data: { kind: 'data' } },
+            { id: 'e5', source: '71', target: '72', sourceHandle: 'value', targetHandle: 'then', data: { kind: 'control', branch: 'then' } },
+            { id: 'e6', source: '70', target: '72', sourceHandle: 'value', targetHandle: 'else', data: { kind: 'control', branch: 'else' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`
+            (if 9999
+                (display )
+                (if 1
+                    3
+                    2))
+        `)
+        )
+    })
 
 
 })

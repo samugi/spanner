@@ -488,7 +488,7 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
             // a node can only be visited if all its (visitable) children
             // have been visited
             let allChildrenVisited = outgoing
-                .filter(e => traverseNodes.has(e.target))
+                // .filter(e => traverseNodes.has(e.target))
                 .every(e => visited.has(e.target));
 
             // if it's a span, we need to check all its child nodes
