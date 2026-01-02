@@ -158,11 +158,22 @@ export function computeNodesAfterCreateSpan(
         style: { width: 300, height: 200 },
     }
 
+    // we only reparent nodes that were in the parent and are now in the new span
+    // or that were in no span and are now in the new span
+    const toReparent = new Set<string>()
+    wrappedNodeIds.forEach(id => {
+        const node = nodes.find(n => n.id === id)
+        if (!node) throw new Error(`Node with id ${id} not found`)
+        if (node.parentId === parentSpan?.id || node.parentId === undefined) {
+            toReparent.add(id)
+        }
+    })
+
     return [
         newSpanNode,
         ...nodes.map(n => {
             // Move selected nodes into new span
-            if (wrappedNodeIds.has(n.id)) {
+            if (toReparent.has(n.id)) {
                 return {
                     ...n,
                     parentId: newSpanId,

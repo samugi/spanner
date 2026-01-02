@@ -1,0 +1,152 @@
+{
+    "nodes": [
+        {
+            "id": "lit1",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "literal",
+                "value": 1
+            }
+        },
+        {
+            "id": "lit2",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "literal",
+                "value": 2
+            }
+        },
+        {
+            "id": "sum",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "+",
+                "n_args": 2
+            },
+            "parentId": "span-sum"
+        },
+        {
+            "id": "display",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "display",
+                "n_args": 1
+            },
+            "parentId": "span-display"
+        },
+        {
+            "id": "display2",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "display",
+                "n_args": 1
+            }
+        },
+        {
+            "id": "span-sum",
+            "type": "span",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "name": "sum-span",
+                "kind": "span",
+                "wrappedNodeIds": [
+                    "sum"
+                ]
+            }
+        },
+        {
+            "id": "span-display",
+            "type": "span",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "name": "display-span",
+                "kind": "span",
+                "wrappedNodeIds": [
+                    "display"
+                ]
+            },
+            "parentId": "span-sum"
+        }
+    ],
+    "edges": [
+        {
+            "id": "e1",
+            "source": "lit1",
+            "target": "sum",
+            "sourceHandle": "value",
+            "targetHandle": "arg-0",
+            "data": {
+                "kind": "data"
+            }
+        },
+        {
+            "id": "e2",
+            "source": "lit2",
+            "target": "sum",
+            "sourceHandle": "value",
+            "targetHandle": "arg-1",
+            "data": {
+                "kind": "data"
+            }
+        },
+        {
+            "id": "e3",
+            "source": "sum",
+            "target": "display",
+            "sourceHandle": "value",
+            "targetHandle": "arg-0",
+            "data": {
+                "kind": "data"
+            }
+        },
+        {
+            "id": "e4",
+            "source": "display",
+            "target": "display2",
+            "sourceHandle": "flow-out",
+            "targetHandle": "flow-in",
+            "data": {
+                "kind": "flow"
+            }
+        },
+        {
+            "id": "e5",
+            "source": "lit2",
+            "target": "display2",
+            "sourceHandle": "value",
+            "targetHandle": "arg-0",
+            "data": {
+                "kind": "data"
+            }
+        }
+    ]
+}

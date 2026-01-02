@@ -98,9 +98,9 @@ describe('computeNodesAfterCreateSpan', () => {
         // `a` should be in span-new
         expect(result.find(n => n.id === 'a')!.parentId)
             .toBe('span-new')
-        // `d` should be in span-new
+        // `d` should remain in span-old-child
         expect(result.find(n => n.id === 'd')!.parentId)
-            .toBe('span-new')
+            .toBe('span-old-child')
         // span-old-child should now be child of span-new
         expect(result.find(n => n.id === 'span-old-child')!.parentId)
             .toBe('span-new')
