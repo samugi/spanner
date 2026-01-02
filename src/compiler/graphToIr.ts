@@ -470,6 +470,52 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
     }
 }
 
+function allChildrenVisited(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
+    // fetch all the children of the current node n
+    const outgoing = allEdges.filter(e => e.source === n.id)
+
+    // check if all children (that are visitable) have been visited
+    // a node can only be visited if all its (visitable) children
+    // have been visited
+    let allChildrenVisited = outgoing
+        // .filter(e => traverseNodes.has(e.target))
+        .every(e => visited.has(e.target));
+    if (!allChildrenVisited) {
+        return false;
+    }
+
+    // if it's part of a condition branch, check if the origin node has been visited
+    // it's a condition branch if any of the edges connected to this node are of data.kind 'control'
+    // TODO: move out of here / unify or similarize with that in utils
+    const ctrlSet = new Set<string>();
+    const stack = [n.id];
+    while (stack.length > 0) {
+        const current = stack.pop()!;
+        if (ctrlSet.has(current)) continue;
+        ctrlSet.add(current);
+
+        for (const e of allEdges) {
+            if (e.source === current && e.data?.kind === 'control') {
+                if (!visited.has(e.target)) {
+                    return false;
+                }
+            }
+            if (e.target === current && !ctrlSet.has(e.source) && e.data?.kind !== 'control') {
+                stack.push(e.source);
+            }
+        }
+    }
+
+
+    // if it's a span, we need to check all its child nodes
+    if (n.data.kind === 'span') {
+        const spanChildNodes = allNodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
+        allChildrenVisited = spanChildNodes.every(id => visited.has(id));
+    }
+
+    return allChildrenVisited;
+}
+
 // Main function to generate IR from a set of nodes and edges
 export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
     visited = visited || new Set<string>();
@@ -481,23 +527,9 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
             if (!traverseNodes.has(n.id) || visited.has(n.id)) {
                 continue;
             }
-            // fetch all the children of the current node n
-            const outgoing = allEdges.filter(e => e.source === n.id)
 
-            // check if all children (that are visitable) have been visited
-            // a node can only be visited if all its (visitable) children
-            // have been visited
-            let allChildrenVisited = outgoing
-                // .filter(e => traverseNodes.has(e.target))
-                .every(e => visited.has(e.target));
-
-            // if it's a span, we need to check all its child nodes
-            if (n.data.kind === 'span') {
-                const spanChildNodes = allNodes.filter(nn => nn.parentId === n.id).map(nn => nn.id);
-                allChildrenVisited = spanChildNodes.every(id => visited.has(id));
-            }
-
-            if (allChildrenVisited) {
+            const childrenVisited = allChildrenVisited(n, allEdges, allNodes, visited);
+            if (childrenVisited) {
                 visited.add(n.id);
 
                 const node = allNodes.find(no => no.id === n.id)!;
