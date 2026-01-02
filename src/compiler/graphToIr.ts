@@ -489,7 +489,6 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
             // have been visited
             let allChildrenVisited = outgoing
                 .filter(e => traverseNodes.has(e.target))
-                .filter(e => e.data?.kind !== 'control') // ignore control edges for dependency purposes
                 .every(e => visited.has(e.target));
 
             // if it's a span, we need to check all its child nodes
