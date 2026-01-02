@@ -1,18 +1,42 @@
 {
     "nodes": [
         {
+            "id": "7",
+            "type": "span",
+            "position": {
+                "x": 262.4834817575458,
+                "y": 197.369742815619
+            },
+            "data": {
+                "name": "ifsp",
+                "kind": "span",
+                "wrappedNodeIds": [
+                    "1"
+                ]
+            },
+            "style": {
+                "width": 300,
+                "height": 200
+            },
+            "width": 300,
+            "height": 200
+        },
+        {
             "id": "1",
             "position": {
-                "x": 302.4834817575458,
-                "y": 237.369742815619
+                "x": 40,
+                "y": 40
             },
             "data": {
                 "kind": "if",
                 "name": "if"
             },
             "type": "if",
-            "width": 146,
-            "height": 132
+            "width": 148,
+            "height": 134,
+            "selected": true,
+            "parentId": "7",
+            "extent": "parent"
         },
         {
             "id": "2",
@@ -112,9 +136,9 @@
                 "name": "Literal \"bar\""
             },
             "type": "expr",
-            "width": 69,
-            "height": 72,
-            "selected": true,
+            "width": 67,
+            "height": 70,
+            "selected": false,
             "positionAbsolute": {
                 "x": -60.901013474244294,
                 "y": 490.63311538511795
@@ -131,7 +155,8 @@
             "data": {
                 "kind": "data"
             },
-            "id": "reactflow__edge-2value-1cond"
+            "id": "reactflow__edge-2value-1cond",
+            "selected": true
         },
         {
             "source": "4",
@@ -149,10 +174,10 @@
             "target": "1",
             "targetHandle": "then",
             "data": {
-                "kind": "control",
-                "branch": "then"
+                "kind": "control"
             },
-            "id": "reactflow__edge-3flow-out-1then"
+            "id": "reactflow__edge-3flow-out-1then",
+            "selected": true
         },
         {
             "source": "6",
@@ -170,10 +195,10 @@
             "target": "1",
             "targetHandle": "else",
             "data": {
-                "kind": "control",
-                "branch": "else"
+                "kind": "control"
             },
-            "id": "reactflow__edge-5flow-out-1else"
+            "id": "reactflow__edge-5flow-out-1else",
+            "selected": true
         }
     ]
 }
