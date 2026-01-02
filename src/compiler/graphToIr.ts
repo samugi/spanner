@@ -302,7 +302,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     actionNodes,
                     visited
                 )
-                actionNodes.forEach(id => visited.add(id));
+                // actionNodes.forEach(id => visited.add(id));
 
                 // create a call that represents the test and action
                 // the name is empty because cond condss are anonymous
@@ -364,14 +364,14 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 thenNodes,
                 visited
             )
-            thenNodes.forEach(id => visited.add(id));
+            // thenNodes.forEach(id => visited.add(id));
             const elseExpr = generateIrSubProgram(
                 nodes,
                 edges,
                 elseNodes,
                 visited
             )
-            elseNodes.forEach(id => visited.add(id));
+            // elseNodes.forEach(id => visited.add(id));
 
             let ifExpr: Expression = {
                 type: 'call',
