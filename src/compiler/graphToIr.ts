@@ -458,9 +458,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             const spanExpr = wrapInSpan(
                 node,
                 nodes,
-                previous,
                 null,
-                null
+                previous,
+                newParamSymbol(node.id)
             );
             return spanExpr!;
         }

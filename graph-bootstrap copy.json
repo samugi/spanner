@@ -1,152 +1,204 @@
 {
     "nodes": [
         {
-            "id": "lit1",
-            "type": "expr",
+            "id": "7",
+            "type": "span",
             "position": {
-                "x": 0,
-                "y": 0
+                "x": 262.4834817575458,
+                "y": 197.369742815619
+            },
+            "data": {
+                "name": "ifsp",
+                "kind": "span",
+                "wrappedNodeIds": [
+                    "1"
+                ]
+            },
+            "style": {
+                "width": 300,
+                "height": 200
+            },
+            "width": 300,
+            "height": 200
+        },
+        {
+            "id": "1",
+            "position": {
+                "x": 40,
+                "y": 40
+            },
+            "data": {
+                "kind": "if",
+                "name": "if"
+            },
+            "type": "if",
+            "width": 148,
+            "height": 134,
+            "selected": true,
+            "parentId": "7",
+            "extent": "parent"
+        },
+        {
+            "id": "2",
+            "position": {
+                "x": 78.93757275276407,
+                "y": 150.50332760103615
             },
             "data": {
                 "kind": "literal",
-                "value": 1
-            }
+                "value": "true",
+                "name": "Literal true"
+            },
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 78.93757275276407,
+                "y": 150.50332760103615
+            },
+            "dragging": false
         },
         {
-            "id": "lit2",
-            "type": "expr",
+            "id": "3",
             "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "kind": "literal",
-                "value": 2
-            }
-        },
-        {
-            "id": "sum",
-            "type": "expr",
-            "position": {
-                "x": 0,
-                "y": 0
-            },
-            "data": {
-                "kind": "call",
-                "name": "+",
-                "n_args": 2
-            },
-            "parentId": "span-sum"
-        },
-        {
-            "id": "display",
-            "type": "expr",
-            "position": {
-                "x": 0,
-                "y": 0
+                "x": 60.60989253363442,
+                "y": 367.497162080139
             },
             "data": {
                 "kind": "call",
                 "name": "display",
-                "n_args": 1
+                "n_args": 1,
+                "output": false
             },
-            "parentId": "span-display"
+            "type": "expr",
+            "width": 146,
+            "height": 67,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 60.60989253363442,
+                "y": 367.497162080139
+            },
+            "dragging": false
         },
         {
-            "id": "display2",
-            "type": "expr",
+            "id": "4",
             "position": {
-                "x": 0,
-                "y": 0
+                "x": -59.60355332892196,
+                "y": 362.91483533482733
+            },
+            "data": {
+                "kind": "literal",
+                "value": "\"foo\"",
+                "name": "Literal \"foo\""
+            },
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": -59.60355332892196,
+                "y": 362.91483533482733
+            },
+            "dragging": false
+        },
+        {
+            "id": "5",
+            "position": {
+                "x": 60.43112632829333,
+                "y": 485.96291916569714
             },
             "data": {
                 "kind": "call",
                 "name": "display",
-                "n_args": 1
-            }
+                "n_args": 1,
+                "output": false
+            },
+            "type": "expr",
+            "width": 146,
+            "height": 67,
+            "selected": false,
+            "positionAbsolute": {
+                "x": 60.43112632829333,
+                "y": 485.96291916569714
+            },
+            "dragging": false
         },
         {
-            "id": "span-sum",
-            "type": "span",
+            "id": "6",
             "position": {
-                "x": 0,
-                "y": 0
+                "x": -60.901013474244294,
+                "y": 490.63311538511795
             },
             "data": {
-                "name": "sum-span",
-                "kind": "span",
-                "wrappedNodeIds": [
-                    "sum"
-                ]
-            }
-        },
-        {
-            "id": "span-display",
-            "type": "span",
-            "position": {
-                "x": 0,
-                "y": 0
+                "kind": "literal",
+                "value": "\"bar\"",
+                "name": "Literal \"bar\""
             },
-            "data": {
-                "name": "display-span",
-                "kind": "span",
-                "wrappedNodeIds": [
-                    "display"
-                ]
+            "type": "expr",
+            "width": 67,
+            "height": 70,
+            "selected": false,
+            "positionAbsolute": {
+                "x": -60.901013474244294,
+                "y": 490.63311538511795
             },
-            "parentId": "span-sum"
+            "dragging": false
         }
     ],
     "edges": [
         {
-            "id": "e1",
-            "source": "lit1",
-            "target": "sum",
+            "source": "2",
             "sourceHandle": "value",
+            "target": "1",
+            "targetHandle": "cond",
+            "data": {
+                "kind": "data"
+            },
+            "id": "reactflow__edge-2value-1cond",
+            "selected": true
+        },
+        {
+            "source": "4",
+            "sourceHandle": "value",
+            "target": "3",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-4value-3arg-0"
         },
         {
-            "id": "e2",
-            "source": "lit2",
-            "target": "sum",
-            "sourceHandle": "value",
-            "targetHandle": "arg-1",
-            "data": {
-                "kind": "data"
-            }
-        },
-        {
-            "id": "e3",
-            "source": "sum",
-            "target": "display",
-            "sourceHandle": "value",
-            "targetHandle": "arg-0",
-            "data": {
-                "kind": "data"
-            }
-        },
-        {
-            "id": "e4",
-            "source": "display",
-            "target": "display2",
+            "source": "3",
             "sourceHandle": "flow-out",
-            "targetHandle": "flow-in",
+            "target": "1",
+            "targetHandle": "then",
             "data": {
-                "kind": "flow"
-            }
+                "kind": "control"
+            },
+            "id": "reactflow__edge-3flow-out-1then",
+            "selected": true
         },
         {
-            "id": "e5",
-            "source": "lit2",
-            "target": "display2",
+            "source": "6",
             "sourceHandle": "value",
+            "target": "5",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            }
+            },
+            "id": "reactflow__edge-6value-5arg-0"
+        },
+        {
+            "source": "5",
+            "sourceHandle": "flow-out",
+            "target": "1",
+            "targetHandle": "else",
+            "data": {
+                "kind": "control"
+            },
+            "id": "reactflow__edge-5flow-out-1else",
+            "selected": true
         }
     ]
 }
