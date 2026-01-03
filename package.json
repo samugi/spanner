@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run ui\" \"npm run server\"",
     "ui": "vite --host",
-    "server": "nodemon server/server.ts",
+    "server": "npx nodemon --watch server --ext ts,json --exec ts-node server/server.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
