@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run ui\" \"npm run server\"",
     "ui": "vite --host",
-    "server": "npx nodemon --watch server --ext ts,json --exec ts-node server/server.ts",
+    "server": "tsx server/server.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -37,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
