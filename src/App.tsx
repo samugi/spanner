@@ -96,7 +96,8 @@ function App() {
   )
 
   async function sendSCM(content: string) {
-    await fetch("http://localhost:3001/spanner-file", {
+    // TODO: load from config
+    await fetch("http://0.0.0.0:3001/spanner-file", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),

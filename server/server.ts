@@ -18,7 +18,7 @@ app.post("/spanner-file", (req, res) => {
     if (!content) return res.status(400).send("No content provided");
 
     fs.writeFileSync(OUT_FILE, content, "utf-8");
-    console.log("[server] Written spanner-out.scm");
+    console.log("[server] Written to", OUT_FILE);
     res.send({ status: "ok" });
 });
 
