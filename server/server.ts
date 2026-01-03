@@ -11,7 +11,7 @@ app.use(express.json({ limit: "5mb" })); // allow large payloads
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Path inside container / shared folder
-const OUT_FILE = path.resolve(__dirname, "../shared/default.scm");
+const OUT_FILE = path.resolve(__dirname, "../../shared/default.scm");
 
 app.post("/spanner-file", (req, res) => {
     const { content } = req.body;
