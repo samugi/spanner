@@ -1,5 +1,5 @@
 run:
-	npm run dev
+	npm run dev -- --host
 
 reset:
 	cp compiler-spec-default.json compiler-spec.json && \
@@ -7,3 +7,6 @@ reset:
 
 test:
 	npm test
+
+install:
+	npm install
