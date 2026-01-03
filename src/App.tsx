@@ -15,7 +15,7 @@ import ReactFlow, {
   addEdge,
   type Connection
 } from 'reactflow'
-import 'reactflow/dist/style.css'
+import 'reactflow/dist/style.css';
 
 import { useCallback, useEffect, useState } from 'react'
 import { generateProgram } from './compiler/compile'
@@ -95,6 +95,13 @@ function App() {
     [setEdges]
   )
 
+  async function sendSCM(content: string) {
+    await fetch("http://localhost:3001/spanner-file", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+  }
 
   function createSpan() {
     const name = prompt('Enter span name:') || 'span'
@@ -209,7 +216,9 @@ function App() {
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                console.log(generateProgram(nodes, edges))
+                const program = generateProgram(nodes, edges);
+                console.log(program);
+                sendSCM(program);
               }}
             >
               Generate
