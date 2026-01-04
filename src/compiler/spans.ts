@@ -30,8 +30,8 @@ function dependsOn(
 
 export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | null, previous: Expression | null, lastNodeSymbol: Symbol | null): Expression {
     let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
-    let incomingCx = parentSpan ? parentSpan.id : 'none'
-
+    let incomingCx = parentSpan ? parentSpan.id : null;
+    let incomingCxName = incomingCx === null ? 'option::stdlib-telemetry_context::none' : newCxSymbol(incomingCx);
 
 
     let outgoingCx = spanNode.id
@@ -60,7 +60,7 @@ export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | nul
                 expr: {
                     type: 'start-span',
                     spanName: spanNode.data.name,
-                    context: { type: 'var', sym: newCxSymbol(incomingCx) }
+                    context: { type: 'var', sym: incomingCxName }
                 } as StartSpan
             },
             {

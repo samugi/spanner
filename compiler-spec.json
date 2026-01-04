@@ -273,6 +273,12 @@
             "name": "option::list::stdlib-telemetry_attribute::none",
             "n_args": 0,
             "output": true
+        },
+        "option::stdlib-telemetry_context::none": {
+            "kind": "call",
+            "name": "option::stdlib-telemetry_context::none",
+            "n_args": 0,
+            "output": true
         }
     },
     "templates": {
