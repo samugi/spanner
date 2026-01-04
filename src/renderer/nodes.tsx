@@ -214,12 +214,12 @@ function ExprNode({ data, selected }: any) {
   }
 
   if (data.kind === 'call') {
-    // make n_args === -1 nodes expandable
     const isVariadic = data.n_args === -1
     const hasOutput = data.output === true
-    const [argCount, setArgCount] = useState(
-      isVariadic ? 0 : data.n_args
-    )
+
+    const fixedArgCount = data.n_args >= 0 ? data.n_args : 0
+    const [extraArgs, setExtraArgs] = useState(0)
+    const argCount = fixedArgCount + extraArgs
 
     return (
       <div
@@ -230,18 +230,10 @@ function ExprNode({ data, selected }: any) {
           position: 'relative'
         }}
       >
-        {/* Operation name */}
-        <div
-          style={{
-            textAlign: 'center',
-            fontWeight: 500,
-            marginBottom: 6
-          }}
-        >
+        <div style={{ textAlign: 'center', fontWeight: 500, marginBottom: 6 }}>
           {data.name}
         </div>
 
-        {/* Arguments */}
         <div style={{ fontSize: 10, color: '#aaa' }}>
           {Array.from({ length: argCount }).map((_, i) => (
             <div
@@ -256,20 +248,16 @@ function ExprNode({ data, selected }: any) {
                 type="target"
                 position={Position.Left}
                 id={`arg-${i}`}
-                style={{
-                  left: -6,
-                  background: '#4ade80'
-                }}
+                style={{ left: -6, background: '#4ade80' }}
               />
               arg-{i}
             </div>
           ))}
         </div>
 
-        {/* Expand button (ONLY for variadic) */}
         {isVariadic && (
           <button
-            onClick={() => setArgCount((c: number) => c + 1)}
+            onClick={() => setExtraArgs(c => c + 1)}
             style={{
               marginTop: 4,
               width: '100%',
@@ -278,44 +266,20 @@ function ExprNode({ data, selected }: any) {
               color: '#9ca3af',
               cursor: 'pointer',
               fontSize: 12,
-              lineHeight: 1,
               padding: 2
             }}
-            title="Add argument"
           >
             ▾
           </button>
         )}
 
-        {/* FLOW */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          id="flow-in"
-          style={{ background: '#22d3ee' }}
-        />
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="flow-out"
-          style={{ background: '#22d3ee' }}
-        />
+        <Handle type="target" position={Position.Top} id="flow-in" />
+        <Handle type="source" position={Position.Bottom} id="flow-out" />
 
-
-        {/* DATA OUTPUT */}
         {hasOutput && (
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="value"
-            style={{ background: '#4ade80' }}
-          />
+          <Handle type="source" position={Position.Right} id="value" />
         )}
-
-
       </div>
-
-
     )
   }
 }

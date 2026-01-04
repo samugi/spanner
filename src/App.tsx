@@ -120,6 +120,49 @@ function App() {
     setNodes(ns => computeNodesAfterCreateSpan(ns, edges, selected, spanId, name))
   }
 
+  const onUploadJSON = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string)
+
+        const normalizedNodes = (parsed.nodes ?? []).map((n: any) => {
+          if (n.data?.kind === 'call' && procedureDataMapping[n.data.name]) {
+            return {
+              ...n,
+              data: procedureDataMapping[n.data.name],
+            }
+          }
+          return n
+        })
+
+        const normalizedEdges = (parsed.edges ?? []).map((e: any) => ({
+          ...e,
+          data: { kind: e.data?.kind },
+        }))
+
+        setNodes(normalizedNodes)
+        setEdges(normalizedEdges)
+
+        const maxId = Math.max(
+          ...normalizedNodes.map((n: any) => parseInt(n.id)),
+          0
+        )
+        setCurrNodeId(maxId + 1)
+      } catch {
+        alert('Invalid JSON file')
+      }
+    }
+
+    reader.readAsText(file)
+    e.target.value = ''
+  }, [setNodes, setEdges])
+
+
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
@@ -207,6 +250,15 @@ function App() {
 
         <Panel position="top-right">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              id="upload-json"
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={onUploadJSON}
+            />
+
+
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => createSpan()}
@@ -248,6 +300,12 @@ function App() {
               }}
             >
               Download JSON
+            </button>
+            <button
+              style={{ padding: 10, cursor: 'pointer' }}
+              onClick={() => document.getElementById('upload-json')?.click()}
+            >
+              Upload JSON
             </button>
           </div>
 
