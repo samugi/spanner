@@ -27,6 +27,10 @@ export type SpanOp =
 
 // TODO: load from config file
 export function renderSpan(op: SpanOp): string {
+    // if op kind is start-span wrap context in option
+    if (op.kind === "start-span") {
+        op.context = op.context === 'none' ? '(option::stdlib-telemetry_context::none)' : `(option::stdlib-telemetry_context::some ${op.context})`;
+    }
     const template = span_templates[op.kind].template;
     return template.replace(/\$\{(\w+)\}/g, (_, key) => op[key as keyof SpanOp] as string);
 }

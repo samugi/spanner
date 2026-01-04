@@ -31,7 +31,7 @@ function dependsOn(
 export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | null, previous: Expression | null, lastNodeSymbol: Symbol | null): Expression {
     let parentSpan = spanNode.parentId ? nodes.find(n => n.id === spanNode.parentId) : null;
     let incomingCx = parentSpan ? parentSpan.id : null;
-    let incomingCxSym = incomingCx ? newCxSymbol(incomingCx) : { id: 'telemetry_context::none)', prefix: '(option::stdlib' };
+    let incomingCxSym = incomingCx ? newCxSymbol(incomingCx) : null;
 
     let outgoingCx = spanNode.id
     // TODO: are we ok with the returned symbol being the last node symbol?
@@ -59,7 +59,7 @@ export function wrapInSpan(spanNode: Node, nodes: Node[], expr: Expression | nul
                 expr: {
                     type: 'start-span',
                     spanName: spanNode.data.name,
-                    context: { type: 'var', sym: incomingCxSym }
+                    context: incomingCxSym ? { type: 'var', sym: incomingCxSym } : null
                 } as StartSpan
             },
             {

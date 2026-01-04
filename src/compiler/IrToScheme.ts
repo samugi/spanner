@@ -2,7 +2,7 @@ import { type Expression, type Symbol } from './types'
 import { renderSpan } from './spec'
 
 function renderSymbol(sym: Symbol): string {
-    return `${sym.prefix}-${sym.id}`
+    return sym ? `${sym.prefix}-${sym.id}` : 'none';
 }
 
 // Generate Scheme from the intermediate representation
@@ -31,12 +31,11 @@ export function generateScheme(expr: Expression): string {
         }
         case 'var':
             return renderSymbol(expr.sym);
-
         case 'start-span':
-            return renderSpan({ kind: 'start-span', spanName: expr.spanName, context: renderSymbol(expr.context.sym) });
+            return renderSpan({ kind: 'start-span', spanName: expr.spanName, context: renderSymbol(expr.context?.sym) });
 
         case 'end-span':
-            return renderSpan({ kind: 'end-span', context: renderSymbol(expr.context.sym) });
+            return renderSpan({ kind: 'end-span', context: renderSymbol(expr.context?.sym) });
 
         default: {
             const _exhaustive: never = expr
