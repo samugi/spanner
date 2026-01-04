@@ -52,7 +52,7 @@ export function wrapSchemeWithTracing(program: string): string {
         (stdlib-telemetry::tracing::exporter-config::with-protocol
             (stdlib-telemetry::tracing::exporter-config::with-endpoint
                 (stdlib-telemetry::tracing::exporter-config::new-default)
-                "http://localhost:4317")
+                "http://jaeger:4317")
             (stdlib-telemetry::common::new-grpc-protocol)))
     (provider
         (stdlib-telemetry::tracing::new-provider
