@@ -6,9 +6,8 @@
 import type { Node, Edge } from 'reactflow'
 import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan } from './types'
 import _ from 'lodash';
-import { newCxSymbol, newParamSymbol } from './spec';
+import { newParamSymbol } from './spec';
 import { wrapInSpan } from './spans';
-import { vi } from 'vitest';
 
 function usesVar(expr: Expression, sym: Symbol): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean' || typeof expr === 'string') {
@@ -541,3 +540,83 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
 
     return result!;
 }
+
+// export function wrapWithTracing(expr: Expression): Expression {
+//     const exporterCfg = newParamSymbol('exporter-config');
+//     const provider = newParamSymbol('provider');
+//     const tracer = newParamSymbol('tracer');
+
+//     return {
+//         type: 'let',
+//         bindings: [
+//             {
+//                 sym: exporterCfg,
+//                 expr: {
+//                     type: 'call',
+//                     name: 'stdlib-telemetry::tracing::exporter-config::with-protocol',
+//                     args: [
+//                         {
+//                             type: 'call',
+//                             name: 'stdlib-telemetry::tracing::exporter-config::with-endpoint',
+//                             args: [
+//                                 {
+//                                     type: 'call',
+//                                     name: 'stdlib-telemetry::tracing::exporter-config::new-default',
+//                                     args: [],
+//                                 },
+//                                 "http://jaeger:4318/v1/traces",
+//                             ],
+//                         },
+//                         {
+//                             type: 'call',
+//                             name: 'stdlib-telemetry::common::new-http-protocol',
+//                             args: [],
+//                         }
+//                     ],
+//                 }
+//             }
+//         ],
+//         body: {
+//             type: 'let',
+//             bindings: [
+//                 {
+//                     sym: provider,
+//                     expr: {
+//                         type: 'call',
+//                         name: 'stdlib-telemetry::tracing::new-provider',
+//                         args: [
+//                             { type: 'var', sym: exporterCfg } as VarRef,
+//                             1000,
+//                             {
+//                                 type: 'call',
+//                                 name: 'option::stdlib-telemetry_resource::none',
+//                                 args: [],
+//                             }
+//                         ],
+//                     }
+//                 }
+//             ],
+//             body: {
+//                 type: 'let',
+//                 bindings: [
+//                     {
+//                         sym: tracer,
+//                         expr: {
+//                             type: 'call',
+//                             name: 'stdlib-telemetry::tracing::new-tracer',
+//                             args: [
+//                                 { type: 'var', sym: provider } as VarRef,
+//                                 {
+//                                     type: 'call',
+//                                     name: 'option::stdlib-telemetry_scope::none',
+//                                     args: [],
+//                                 }
+//                             ],
+//                         }
+//                     }
+//                 ],
+//                 body: expr
+//             }
+//         }
+//     } as Let;
+// }

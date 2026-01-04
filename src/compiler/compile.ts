@@ -1,7 +1,11 @@
-import { generateScheme } from "./IrToScheme";
+import { generateScheme, wrapSchemeWithTracing } from "./IrToScheme";
 import type { Node, Edge } from 'reactflow'
 import { generateIrSubProgram } from './graphToIr'
 import { belongsToControlFlow } from "../utils";
+
+function hasTracing(nodes: Node[]): boolean {
+    return nodes.some(n => n.data?.kind === 'span');
+}
 
 export function generateProgram(nodes: Node[], edges: Edge[]): string {
     // do not traverse (directly):
@@ -15,5 +19,11 @@ export function generateProgram(nodes: Node[], edges: Edge[]): string {
     const filteredNodesIds = new Set(filteredNodes.map(n => n.id));
 
     const result = generateIrSubProgram(nodes, edges, filteredNodesIds, null);
-    return generateScheme(result || '');
+
+    let schemeResult = generateScheme(result || '');
+    // wrap with tracing setup if needed
+    if (result && hasTracing(nodes)) {
+        schemeResult = wrapSchemeWithTracing(schemeResult);
+    }
+    return schemeResult;
 }

@@ -219,14 +219,68 @@
             "name": "stdlib-matching::engine::execute",
             "n_args": 3,
             "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::with-protocol": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::with-protocol",
+            "n_args": 2,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::with-endpoint": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::with-endpoint",
+            "n_args": 2,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::new-default": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::new-default",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::common::new-http-protocol": {
+            "kind": "call",
+            "name": "stdlib-telemetry::common::new-http-protocol",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::new-provider": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::new-provider",
+            "n_args": 1,
+            "output": true
+        },
+        "option::stdlib-telemetry_resource::none": {
+            "kind": "call",
+            "name": "option::stdlib-telemetry_resource::none",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::new-tracer": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::new-tracer",
+            "n_args": 2,
+            "output": true
+        },
+        "option::stdlib-telemetry_scope::none": {
+            "kind": "call",
+            "name": "option::stdlib-telemetry_scope::none",
+            "n_args": 0,
+            "output": true
+        },
+        "option::list::stdlib-telemetry_attribute::none": {
+            "kind": "call",
+            "name": "option::list::stdlib-telemetry_attribute::none",
+            "n_args": 0,
+            "output": true
         }
     },
     "templates": {
         "start-span": {
-            "template": "(start-span \"${spanName}\" ${context})"
+            "template": "(stdlib-telemetry::tracing::start-span tracer \"${spanName}\" ${context} (option::list::stdlib-telemetry_attribute::none) 0)"
         },
         "end-span": {
-            "template": "(end-span ${context})"
+            "template": "(stdlib-telemetry::tracing::end-span ${context} 0)"
         }
     }
 }

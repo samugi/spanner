@@ -44,3 +44,26 @@ export function generateScheme(expr: Expression): string {
         }
     }
 }
+
+export function wrapSchemeWithTracing(program: string): string {
+    return `
+(let* (
+    (exporter-config
+        (stdlib-telemetry::tracing::exporter-config::with-protocol
+            (stdlib-telemetry::tracing::exporter-config::with-endpoint
+                (stdlib-telemetry::tracing::exporter-config::new-default)
+                "http://localhost:4318/v1/traces")
+            (stdlib-telemetry::common::new-http-protocol)))
+    (provider
+        (stdlib-telemetry::tracing::new-provider
+            exporter-config
+            1000
+            (option::stdlib-telemetry_resource::none)))
+    (tracer
+        (stdlib-telemetry::tracing::new-tracer
+            provider
+            (option::stdlib-telemetry_scope::none))))
+  ${program}
+)
+`.trim();
+}

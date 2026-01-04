@@ -117,13 +117,170 @@
             "name": "cond"
         }
     },
-    "extra_procedures": {},
+    "extra_procedures": {
+        "core::server::stream::get-metadata": {
+            "kind": "call",
+            "name": "core::server::stream::get-metadata",
+            "n_args": 0,
+            "output": true
+        },
+        "core::server::stream::tcp-metadata": {
+            "kind": "call",
+            "name": "core::server::stream::tcp-metadata",
+            "n_args": 1,
+            "output": true
+        },
+        "core::server::stream::tcp::peer-port": {
+            "kind": "call",
+            "name": "core::server::stream::tcp::peer-port",
+            "n_args": 1,
+            "output": true
+        },
+        "core::server::stream::tcp::local-port": {
+            "kind": "call",
+            "name": "core::server::stream::tcp::local-port",
+            "n_args": 1,
+            "output": true
+        },
+        "http::proxy-http::response::clear": {
+            "kind": "call",
+            "name": "http::proxy-http::response::clear",
+            "n_args": 0,
+            "output": true
+        },
+        "http::proxy-http::response::set-header": {
+            "kind": "call",
+            "name": "http::proxy-http::response::set-header",
+            "n_args": 2,
+            "output": true
+        },
+        "http::proxy-http::send-response": {
+            "kind": "call",
+            "name": "http::proxy-http::send-response",
+            "n_args": 0,
+            "output": true
+        },
+        "core::server::tls::get-client-hello": {
+            "kind": "call",
+            "name": "core::server::tls::get-client-hello",
+            "n_args": 0,
+            "output": true
+        },
+        "core::server::tls::client-hello::server-name": {
+            "kind": "call",
+            "name": "core::server::tls::client-hello::server-name",
+            "n_args": 1,
+            "output": true
+        },
+        "core::server::tls::server-config-builder::new-default": {
+            "kind": "call",
+            "name": "core::server::tls::server-config-builder::new-default",
+            "n_args": 0,
+            "output": true
+        },
+        "todo-kv::certificate-der::get": {
+            "kind": "call",
+            "name": "todo-kv::certificate-der::get",
+            "n_args": 1,
+            "output": true
+        },
+        "todo-vault::key-der::get": {
+            "kind": "call",
+            "name": "todo-vault::key-der::get",
+            "n_args": 1,
+            "output": true
+        },
+        "stdlib-matching::engine::make-field-str": {
+            "kind": "call",
+            "name": "stdlib-matching::engine::make-field-str",
+            "n_args": 3,
+            "output": true
+        },
+        "core::server::tls::server-config-builder::single-cert": {
+            "kind": "call",
+            "name": "core::server::tls::server-config-builder::single-cert",
+            "n_args": 3,
+            "output": true
+        },
+        "core::server::tls::server-config-builder::build": {
+            "kind": "call",
+            "name": "core::server::tls::server-config-builder::build",
+            "n_args": 1,
+            "output": true
+        },
+        "core::server::tls::complete-handshake": {
+            "kind": "call",
+            "name": "core::server::tls::complete-handshake",
+            "n_args": 1,
+            "output": true
+        },
+        "stdlib-matching::engine::execute": {
+            "kind": "call",
+            "name": "stdlib-matching::engine::execute",
+            "n_args": 3,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::with-protocol": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::with-protocol",
+            "n_args": 2,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::with-endpoint": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::with-endpoint",
+            "n_args": 2,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::exporter-config::new-default": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::exporter-config::new-default",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::common::new-http-protocol": {
+            "kind": "call",
+            "name": "stdlib-telemetry::common::new-http-protocol",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::new-provider": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::new-provider",
+            "n_args": 1,
+            "output": true
+        },
+        "option::stdlib-telemetry_resource::none": {
+            "kind": "call",
+            "name": "option::stdlib-telemetry_resource::none",
+            "n_args": 0,
+            "output": true
+        },
+        "stdlib-telemetry::tracing::new-tracer": {
+            "kind": "call",
+            "name": "stdlib-telemetry::tracing::new-tracer",
+            "n_args": 2,
+            "output": true
+        },
+        "option::stdlib-telemetry_scope::none": {
+            "kind": "call",
+            "name": "option::stdlib-telemetry_scope::none",
+            "n_args": 0,
+            "output": true
+        },
+        "option::list::stdlib-telemetry_attribute::none": {
+            "kind": "call",
+            "name": "option::list::stdlib-telemetry_attribute::none",
+            "n_args": 0,
+            "output": true
+        }
+    },
     "templates": {
         "start-span": {
-            "template": "(start-span \"${spanName}\" ${context})"
+            "template": "(stdlib-telemetry::tracing::start-span tracer \"${spanName}\" ${context} (option::list::stdlib-telemetry_attribute::none) 0)"
         },
         "end-span": {
-            "template": "(end-span ${context})"
+            "template": "(stdlib-telemetry::tracing::end-span ${context} 0)"
         }
     }
 }
