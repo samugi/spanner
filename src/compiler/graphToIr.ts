@@ -215,10 +215,16 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 }
 
 // Generate IR for a single node
+// span wrapping works like this:
+// - when visiting a node, if it has a parent span that has not been visited yet,
+//   we generate the entire subprogram for that span (including the current node)
 function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>, traverseNodes: Set<string>): Expression {
     const incomingData = edges.filter(e => e.target === node.id && e.data && e.data.kind === 'data')
     const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
 
+    //  -----------------
+    // |  Span wrapping  |
+    //  -----------------
     const parentSpanId = node.parentId;
     const parentSpan = parentSpanId ? nodes.find(n => n.id === parentSpanId) : null;
     // if there is a parent span for the current node, process the subprogram wrapped in the span first
@@ -240,6 +246,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
         }
     }
 
+    // no span is wrapping the current node in this program traversal, proceed normally
     switch (node.data.kind) {
         case 'literal': {
             if (previous) {
@@ -441,15 +448,16 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
 
         }
         case 'span': {
-            // if we are visiting a span directly it means all its children were visited and we can wrap
-            const spanExpr = wrapInSpan(
-                node,
-                nodes,
-                null,
-                previous,
-                newParamSymbol(node.id)
-            );
-            return spanExpr!;
+            throw new Error('Span nodes should be handled separately when visiting their child nodes');
+            // // if we are visiting a span directly it means all its children were visited and we can wrap
+            // const spanExpr = wrapInSpan(
+            //     node,
+            //     nodes,
+            //     null,
+            //     previous,
+            //     newParamSymbol(node.id)
+            // );
+            // return spanExpr!;
         }
         default: {
             throw new Error(`Unknown node kind: ${node.data.kind}`)
@@ -457,7 +465,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
     }
 }
 
-function allChildrenVisited(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
+function isVisitable(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
     // fetch all the children of the current node n
     const outgoing = allEdges.filter(e => e.source === n.id)
 
@@ -515,7 +523,7 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
                 continue;
             }
 
-            const childrenVisited = allChildrenVisited(n, allEdges, allNodes, visited);
+            const childrenVisited = isVisitable(n, allEdges, allNodes, visited);
             if (childrenVisited) {
                 visited.add(n.id);
 
