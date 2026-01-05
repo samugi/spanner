@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { useCallback, useEffect, useState } from 'react'
-import { generateProgram } from './compiler/compile'
+import { generateProgram, generateTracedProgram } from './compiler/compile'
 import { computeNodesAfterCreateSpan } from './compiler/spans'
 import { nodeTypes } from './renderer/nodes'
 import { type EdgeKind } from './types'
@@ -269,7 +269,7 @@ function App() {
             <button
               style={{ padding: 10, cursor: 'pointer' }}
               onClick={() => {
-                const program = generateProgram(nodes, edges);
+                const program = generateTracedProgram(nodes, edges);
                 console.log(program);
                 sendSCM(program);
               }}

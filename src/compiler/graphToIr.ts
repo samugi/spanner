@@ -37,7 +37,7 @@ function usesVar(expr: Expression, sym: Symbol): boolean {
 
         case 'start-span':
         case 'end-span':
-            return !createsScope(expr.context) && usesVar(expr.context, sym)
+            return expr.context && !createsScope(expr.context) && usesVar(expr.context, sym)
 
         default: {
             const _exhaustive: never = expr

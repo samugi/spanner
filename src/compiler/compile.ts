@@ -20,10 +20,13 @@ export function generateProgram(nodes: Node[], edges: Edge[]): string {
 
     const result = generateIrSubProgram(nodes, edges, filteredNodesIds, null);
 
-    let schemeResult = generateScheme(result || '');
-    // wrap with tracing setup if needed
-    if (result && hasTracing(nodes)) {
-        schemeResult = wrapSchemeWithTracing(schemeResult);
+    return generateScheme(result || '');
+}
+
+export function generateTracedProgram(nodes: Node[], edges: Edge[]): string {
+    let program = generateProgram(nodes, edges);
+    if (!hasTracing(nodes)) {
+        return program;
     }
-    return schemeResult;
+    return wrapSchemeWithTracing(program);
 }
