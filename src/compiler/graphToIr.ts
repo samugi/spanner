@@ -230,19 +230,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             visited.delete(node.id);
 
             let spanBodyExpr = generateIrSubProgram(nodes, edges, subProgram, visited);
-            // here we need to merge the expression with previous if any
-            // differently depending on what expressino previous is, let, begin, etc.
-            // if (previous) {
-            // let's use a let expression to bind the output of this stuff to
-            // a symbol. The symbol is the last node's output in the span body
-
-            // to find the last node we just traverse the subprogram and find the only
-            // node that has an edge going out of the span
-            const lastNodeInSubProgram = Array.from(subProgram).find(id => {
-                return edges.some(e => e.source === id && !subProgram.has(e.target));
-            });
-
-            const lastNodeSymbol = lastNodeInSubProgram ? newParamSymbol(lastNodeInSubProgram) : null;
+            const lastNodeSymbol = newParamSymbol(node.id);
 
             spanBodyExpr = wrapInSpan(parentSpan, nodes, spanBodyExpr, previous, lastNodeSymbol)!;
             visited.add(parentSpanId);
