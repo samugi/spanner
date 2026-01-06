@@ -4,10 +4,9 @@
 //
 
 import type { Node, Edge } from 'reactflow'
-import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan } from './types'
+import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan, isTraceableExpr } from './types'
 import _ from 'lodash';
-import { newParamSymbol } from './spec';
-import { wrapInSpan } from './spans';
+import { newCxSymbol, newParamSymbol } from './spec';
 import { belongsToControlFlow } from '../utils';
 
 function usesVar(expr: Expression, sym: Symbol): boolean {
@@ -38,7 +37,7 @@ function usesVar(expr: Expression, sym: Symbol): boolean {
 
         case 'start-span':
         case 'end-span':
-            return expr.context && !createsScope(expr.context) && usesVar(expr.context, sym)
+            return !!expr.context && !createsScope(expr.context) && usesVar(expr.context, sym)
 
         default: {
             const _exhaustive: never = expr
@@ -219,42 +218,42 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
 // span wrapping works like this:
 // - when visiting a node, if it has a parent span that has not been visited yet,
 //   we generate the entire subprogram for that span (including the current node)
-function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>, traverseNodes: Set<string>): Expression {
+function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous: Expression | null, visited: Set<string>, allSpanNodes: Node[]): Expression {
     const incomingData = edges.filter(e => e.target === node.id && e.data && e.data.kind === 'data')
     const nodeOutSymbol = newParamSymbol(node.id); // output symbol for this node
 
-    //  -----------------
-    // |  Span wrapping  |
-    //  -----------------
-    const parentSpanId = node.parentId;
-    const parentSpan = parentSpanId ? nodes.find(n => n.id === parentSpanId) : null;
-    // if there is a parent span for the current node, process the subprogram wrapped in the span first
-    if (parentSpanId && parentSpan && !visited.has(parentSpanId) && traverseNodes.has(parentSpanId)) {
-        // must collect all nodes in the span
-        // if it's a parent span, the subprogram includes nodes that are in subspans
-        // so they can be traversed as well recursively
-        let subProgram = new Set(nodes.filter(n => n.parentId === parentSpanId)?.map(n => n.id));
-        let subSpans = nodes.filter(n => n.parentId === parentSpanId && n.data.kind === 'span');
-        for (const ss of subSpans) {
-            const spanChildNodes = new Set(nodes.filter(n => n.parentId === ss.id)?.map(n => n.id));
-            spanChildNodes.forEach(id => subProgram.add(id));
-        }
+    // //  -----------------
+    // // |  Span wrapping  |
+    // //  -----------------
+    // const parentSpanId = node.parentId;
+    // const parentSpan = parentSpanId ? nodes.find(n => n.id === parentSpanId) : null;
+    // // if there is a parent span for the current node, process the subprogram wrapped in the span first
+    // if (parentSpanId && parentSpan && !visited.has(parentSpanId) && traverseNodes.has(parentSpanId)) {
+    //     // must collect all nodes in the span
+    //     // if it's a parent span, the subprogram includes nodes that are in subspans
+    //     // so they can be traversed as well recursively
+    //     let subProgram = new Set(nodes.filter(n => n.parentId === parentSpanId)?.map(n => n.id));
+    //     let subSpans = nodes.filter(n => n.parentId === parentSpanId && n.data.kind === 'span');
+    //     for (const ss of subSpans) {
+    //         const spanChildNodes = new Set(nodes.filter(n => n.parentId === ss.id)?.map(n => n.id));
+    //         spanChildNodes.forEach(id => subProgram.add(id));
+    //     }
 
-        if (subProgram) {
-            // because the subprogram includes the current node, and we have to process it,
-            // we remove the current node from the visited set so it gets processed again
-            visited.delete(node.id);
+    //     if (subProgram) {
+    //         // because the subprogram includes the current node, and we have to process it,
+    //         // we remove the current node from the visited set so it gets processed again
+    //         visited.delete(node.id);
 
-            let spanBodyExpr = generateIrSubProgram(nodes, edges, subProgram, visited);
-            const lastNodeSymbol = newParamSymbol(node.id);
+    //         let spanBodyExpr = generateIrSubProgram(nodes, edges, subProgram, visited);
+    //         const lastNodeSymbol = newParamSymbol(node.id);
 
-            spanBodyExpr = wrapInSpan(parentSpan, nodes, spanBodyExpr, previous, lastNodeSymbol)!;
-            visited.add(parentSpanId);
-            //add all nodes in the subprogram to visited
-            // subProgram.forEach(id => visited.add(id));
-            return spanBodyExpr;
-        }
-    }
+    //         spanBodyExpr = wrapInSpan(parentSpan, nodes, spanBodyExpr, previous, lastNodeSymbol)!;
+    //         visited.add(parentSpanId);
+    //         //add all nodes in the subprogram to visited
+    //         // subProgram.forEach(id => visited.add(id));
+    //         return spanBodyExpr;
+    //     }
+    // }
 
     // no span is wrapping the current node in this program traversal, proceed normally
     switch (node.data.kind) {
@@ -273,7 +272,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     || {
                         type: 'let',
                         bindings: [{ sym: nodeOutSymbol, expr: node.data.value }],
-                        body: previous
+                        body: previous,
                     } as Let;
                 return squashed;
             }
@@ -300,9 +299,10 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 // actions are conditional to the test being true
                 // they must be treated as sub-programs so their scope is contained
                 const actionNodes = collectReachableNodes(br.actionEdge.source, edges, nodes, br.actionEdge);
-                const actionExpr = generateIrSubProgram(
+                let actionExpr = generateIrSubProgram(
                     nodes,
                     edges,
+                    allSpanNodes,
                     actionNodes,
                     visited
                 )
@@ -365,6 +365,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             const thenExpr = generateIrSubProgram(
                 nodes,
                 edges,
+                allSpanNodes,
                 thenNodes,
                 visited
             )
@@ -372,6 +373,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             const elseExpr = generateIrSubProgram(
                 nodes,
                 edges,
+                allSpanNodes,
                 elseNodes,
                 visited
             )
@@ -385,7 +387,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     thenExpr,
                     elseExpr
                 ],
-                output: false
+                output: false,
+                spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
+                activeSpanId: node.parentId || undefined
             }
 
             if (!previous) return ifExpr;
@@ -410,7 +414,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 type: 'call',
                 name: node.data.name,
                 args: args,
-                output: node.data.output !== false
+                output: node.data.output !== false,
+                spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
+                activeSpanId: node.parentId || undefined
             }
 
             // if there is no previous expression, just return the call
@@ -458,7 +464,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
 
         }
         case 'span': {
-            throw new Error('Span nodes should be handled separately when visiting their child nodes');
+            throw new Error('Span nodes should be handled separately');
             // // if we are visiting a span directly it means all its children were visited and we can wrap
             // const spanExpr = wrapInSpan(
             //     node,
@@ -554,7 +560,7 @@ function pickNextNode(visitableNodes: Node[], allEdges: Edge[], visited: Set<str
 }
 
 // Main function to generate IR from a set of nodes and edges
-export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
+export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], allSpanNodes: Node[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
     visited = visited || new Set<string>();
     let result: Expression | null = null;
 
@@ -564,7 +570,7 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
         const node = pickNextNode(visitableNodes, allEdges, visited);
 
         visited.add(node.id);
-        result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
+        result = generateIrSingleNode(node, allNodes, allEdges, result, visited, allSpanNodes);
     }
 
     return result!;
@@ -616,6 +622,9 @@ function canReach(from: string, to: string, flowEdges: Edge[]): boolean {
 
 // TODO: we need a check that there are no cross-flow dependencies: error out
 export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Expression {
+    const allDataNodes = allNodes.filter(n => n.data.kind !== 'span');
+    const allSpanNodes = allNodes.filter(n => n.data.kind === 'span');
+
     // result is a begin of all subprograms for each independent flow
     // here we identify independent flows as groups of nodes that are connected by data edges
     // to split into flows we identify flow roots as nodes that have incoming flow edges
@@ -628,7 +637,7 @@ export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Express
 
     const sortedRoots = Array.from(flowRoots).sort((a, b) => canReach(a, b, flowEdges) ? -1 : 1);
     let flows = sortedRoots.map(rootId => {
-        const rootNode = allNodes.find(n => n.id === rootId);
+        const rootNode = allDataNodes.find(n => n.id === rootId);
         if (!rootNode) {
             throw new Error(`Flow root node not found: ${rootId}`);
         }
@@ -637,22 +646,24 @@ export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Express
 
     // if no flows detected, create a single flow with all nodes
     if (flows.length === 0) {
-        flows = [new Set(allNodes.map(n => n.id))];
+        flows = [new Set(allDataNodes.map(n => n.id))];
     }
 
     // the result is a begin of all flow subprograms
     const flowExprs: Expression[] = [];
     const visited = new Set<string>();
     for (const flowNodes of flows) {
-        const allNodesInFlow = allNodes.filter(n => flowNodes.has(n.id));
-        const filteredNodes = allNodesInFlow.filter(n => {
+        const allNodesInFlow = allDataNodes.filter(n => flowNodes.has(n.id));
+        // remove control flow nodes
+        let filteredNodes = allNodesInFlow.filter(n => {
             if (belongsToControlFlow(n.id, allEdges)) return false;
             return true;
         });
+
         const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
 
         // TODO: maybe allNodesInFlow instead of allNodes?
-        const flowExpr = generateIrSubProgram(allNodes, allEdges, filteredNodeIds, visited);
+        const flowExpr = generateIrSubProgram(allDataNodes, allEdges, allSpanNodes, filteredNodeIds, visited);
         flowExprs.push(flowExpr);
     }
 
@@ -668,6 +679,207 @@ export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Express
     } as Call;
 }
 
+function findFirstUsageSpan(expr: Expression, spanId: string): Expression | null {
+    if (!isTraceableExpr(expr)) {
+        return null;
+    }
+
+    switch (expr.type) {
+        case 'call':
+            if (expr.spanIds && expr.spanIds.some(id => id === spanId)) {
+                return expr;
+            }
+            for (const arg of expr.args) {
+                const result = findFirstUsageSpan(arg, spanId);
+                if (result) {
+                    return result;
+                }
+            }
+            return null;
+        case 'let':
+        case 'let*':
+            for (const b of expr.bindings) {
+                const result = findFirstUsageSpan(b.expr, spanId);
+                if (result) {
+                    return result;
+                }
+            }
+            return findFirstUsageSpan(expr.body, spanId);
+
+        default:
+            return null;
+    }
+}
+
+// must find the last usage (in a depth-first traversal) of a span in an expression
+// so that we know when the span can be closed
+// it must traverse all the graph because the last usage may be in a different branch
+function findLastUsageSpan(expr: Expression, spanId: string): Expression | null {
+    if (!isTraceableExpr(expr)) {
+        return null;
+    }
+
+    let lastUsage: Expression | null = null;
+
+    switch (expr.type) {
+        case 'call':
+            for (const arg of expr.args) {
+                const result = findLastUsageSpan(arg, spanId);
+                if (result) {
+                    lastUsage = result;
+                }
+            }
+            if (expr.spanIds && expr.spanIds.some(id => id === spanId)) {
+                lastUsage = expr;
+            }
+            return lastUsage;
+        case 'let':
+        case 'let*':
+            for (const b of expr.bindings) {
+                const result = findLastUsageSpan(b.expr, spanId);
+                if (result) {
+                    lastUsage = result;
+                }
+            }
+            const bodyResult = findLastUsageSpan(expr.body, spanId);
+            if (bodyResult) {
+                lastUsage = bodyResult;
+            }
+            return lastUsage;
+
+        default:
+            return null;
+    }
+}
+
+
+
+// recursively finds expressions that have an active span (spanId)
+// starts every span before the first expression that uses it
+// ends every span after the last expression that uses it
+export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes: Node[]): Expression {
+    if (!isExprObj(currExpr) || !isTraceableExpr(currExpr)) {
+        return currExpr;
+    }
+
+    let spanIds = currExpr.spanIds ? currExpr.spanIds : null;
+    let spanNodes = spanIds ? allNodes.filter(n => spanIds.includes(n.id)) : null;
+    let activeSpanId = currExpr.activeSpanId ? currExpr.activeSpanId : null;
+    let activeSpanNode = activeSpanId ? allNodes.find(n => n.id === activeSpanId) : null;
+
+    switch (currExpr.type) {
+        case 'call': {
+            for (const arg of currExpr.args) {
+                const tArg = generateTir(arg, fullExpr, allNodes);
+                currExpr = {
+                    ...currExpr,
+                    args: currExpr.args.map(a => a === arg ? tArg : a)
+                } as Call;
+            }
+
+            if (!spanIds) {
+                return currExpr;
+            }
+            if (!spanNodes || spanNodes.some(n => n.data.kind !== 'span')) {
+                throw new Error(`Span node not found for some ids: ${spanIds}`);
+            }
+
+            const sortedSpanNodes = spanNodes.sort((a, b) => {
+                const aParentId = a.parentId;
+                const bParentId = b.parentId;
+
+                // If a is parent of b, a should come before b
+                if (a.id === bParentId) return -1;
+                // If b is parent of a, b should come before a
+                if (b.id === aParentId) return 1;
+
+                // If a has no parent (root), it comes first
+                if (!aParentId && bParentId) return -1;
+                // If b has no parent (root), it comes first
+                if (aParentId && !bParentId) return 1;
+
+                return 0;
+            });
+
+            // find spans for which this expression is the first usage
+            const spanNodesToStart: Node[] = [];
+            for (const spanNode of sortedSpanNodes) {
+                const firstUsage = findFirstUsageSpan(fullExpr, spanNode.id) === currExpr;
+                if (firstUsage) {
+                    spanNodesToStart.push(spanNode);
+                }
+            }
+
+            const spanNodesToEnd: Node[] = [];
+            for (const spanNode of [...sortedSpanNodes].reverse()) {
+                const lastUsage = findLastUsageSpan(fullExpr, spanNode.id) === currExpr;
+                if (lastUsage) {
+                    spanNodesToEnd.push(spanNode);
+                }
+            }
+
+            // end spans first
+            if (spanNodesToEnd.length > 0) {
+                const endSpanCalls = spanNodesToEnd.map(spanNode => {
+                    const endSpan: EndSpan = {
+                        type: 'end-span',
+                        context: { type: 'var', sym: newCxSymbol(spanNode.id) }
+                    };
+                    return endSpan;
+                });
+                currExpr = {
+                    type: 'call',
+                    name: 'begin',
+                    output: currExpr.type === 'call' && currExpr.output ? true : false,
+                    args: [
+                        currExpr,
+                        ...endSpanCalls
+                    ]
+                };
+            }
+
+            // then start spans
+            if (spanNodesToStart.length > 0) {
+                const startSpanBindings = spanNodesToStart.map(spanNode => {
+                    const startSpan: StartSpan = {
+                        type: 'start-span',
+                        spanName: spanNode.data.name,
+                        context: activeSpanNode?.parentId ? { type: 'var', sym: newCxSymbol(activeSpanNode.parentId) } : null
+                    };
+                    return {
+                        sym: newCxSymbol(spanNode.id),
+                        expr: startSpan
+                    };
+                });
+                currExpr = {
+                    type: 'let',
+                    bindings: startSpanBindings,
+                    body: currExpr
+                }
+            }
+
+            return currExpr;
+        }
+        case 'let':
+        case 'let*': {
+            for (const b of currExpr.bindings) {
+                const tExpr = generateTir(b.expr, fullExpr, allNodes);
+                currExpr = {
+                    ...currExpr,
+                    bindings: currExpr.bindings.map(bind => bind === b ? { ...bind, expr: tExpr } : bind)
+                } as Let | LetStar;
+            }
+            const tBody = generateTir(currExpr.body, fullExpr, allNodes);
+            currExpr = {
+                ...currExpr,
+                body: tBody
+            } as Let | LetStar;
+            return currExpr;
+        }
+        default:
+            return currExpr;
+    }
+}
 
 // export function wrapWithTracing(expr: Expression): Expression {
 //     const exporterCfg = newParamSymbol('exporter-config');

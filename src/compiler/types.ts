@@ -4,12 +4,16 @@ export type Let = {
     type: 'let',
     bindings: Binding[]
     body: Expression
+    spanIds?: string[]
+    activeSpanId?: string
 }
 
 export type LetStar = {
     type: 'let*',
     bindings: Binding[]
     body: Expression
+    spanIds?: string[]
+    activeSpanId?: string
 }
 
 export type Call = {
@@ -17,6 +21,8 @@ export type Call = {
     name: string
     args: Expression[]
     output: boolean
+    spanIds?: string[]
+    activeSpanId?: string
 }
 
 export type Binding = {
@@ -32,7 +38,7 @@ export type VarRef = {
 export type StartSpan = {
     type: 'start-span'
     spanName: string
-    context: VarRef
+    context: VarRef | null
 }
 
 export type EndSpan = {
@@ -50,6 +56,10 @@ export type Expression = Literal | ExprObj | VarRef | StartSpan | EndSpan
 
 export function isExprObj(expr: Expression): expr is ExprObj {
     return typeof expr === 'object' && expr !== null && 'type' in expr
+}
+
+export function isTraceableExpr(expr: Expression): expr is Call | Let | LetStar {
+    return isExprObj(expr) && (expr.type === 'call' || expr.type === 'let' || expr.type === 'let*')
 }
 
 export function isLet(expr: Expression): expr is Let {
