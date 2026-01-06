@@ -7,7 +7,7 @@ function hasTracing(nodes: Node[]): boolean {
 }
 
 export function generateProgram(nodes: Node[], edges: Edge[]): string {
-    const result = generateIrMultiFlow(nodes, edges);
+    const result = generateIrMultiFlow(nodes, edges, null, null);
     const spannedResult = generateTir(result, result, nodes);
     return generateScheme(spannedResult || '');
 }
