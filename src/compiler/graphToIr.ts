@@ -474,7 +474,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
     }
 }
 
-function isVisitable(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
+function areChildrenVisited(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
     // fetch all the children of the current node n
     const outgoing = allEdges.filter(e => e.source === n.id)
 
@@ -520,6 +520,17 @@ function isVisitable(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<s
     return allChildrenVisited;
 }
 
+function visitable(allNodes: Node[], allEdges: Edge[], node: Node, traverseNodes: Set<string>, visited: Set<string>): boolean {
+    if (!traverseNodes.has(node.id) || visited.has(node.id))
+        return false;
+
+    if (!areChildrenVisited(node, allEdges, allNodes, visited)) {
+        return false;
+    }
+
+    return true;
+}
+
 // Main function to generate IR from a set of nodes and edges
 export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
     visited = visited || new Set<string>();
@@ -528,18 +539,15 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
     // visit all nodes in traverseNodes
     while ([...traverseNodes].some(id => !visited!.has(id))) {
         for (const n of allNodes) {
-            if (!traverseNodes.has(n.id) || visited.has(n.id)) {
+
+            if (!visitable(allNodes, allEdges, n, traverseNodes, visited)) {
                 continue;
             }
 
-            const childrenVisited = isVisitable(n, allEdges, allNodes, visited);
-            if (childrenVisited) {
-                visited.add(n.id);
-
-                const node = allNodes.find(no => no.id === n.id)!;
-                result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
-                break;
-            }
+            visited.add(n.id);
+            const node = allNodes.find(no => no.id === n.id)!;
+            result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
+            break;
         }
     }
 
