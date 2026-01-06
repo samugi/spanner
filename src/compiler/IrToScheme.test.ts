@@ -162,15 +162,6 @@ describe('generateProgram: spans + dataflow', () => {
                 targetHandle: 'arg-0',
                 data: { kind: 'data' },
             },
-            // display -> display2 (flow)
-            {
-                id: 'e4',
-                source: 'display',
-                target: 'display2',
-                sourceHandle: 'flow-out',
-                targetHandle: 'flow-in',
-                data: { kind: 'flow' },
-            },
             // literals -> display2 (data)
             {
                 id: 'e5',
@@ -188,7 +179,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-lit2 2) (cx-span-sum (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-sum (+ 1 p-lit2))) (begin (stdlib-telemetry::tracing::end-span cx-span-sum 0) (let* ((cx-span-display (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-span-sum) (option::list::stdlib-telemetry_attribute::none) 0)) (p-display (display p-sum))) (begin (stdlib-telemetry::tracing::end-span cx-span-display 0) (display p-lit2) p-display)) p-sum))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2)) (begin (display p-lit2) (let* ((cx-span-sum (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-sum (+ 1 p-lit2))) (begin (stdlib-telemetry::tracing::end-span cx-span-sum 0) (let* ((cx-span-display (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-span-sum) (option::list::stdlib-telemetry_attribute::none) 0)) (p-display (display p-sum))) (begin (stdlib-telemetry::tracing::end-span cx-span-display 0) p-display)) p-sum))))`))
     })
 
     it('computes if condition correctly', () => {

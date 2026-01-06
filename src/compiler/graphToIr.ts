@@ -8,6 +8,7 @@ import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike
 import _ from 'lodash';
 import { newParamSymbol } from './spec';
 import { wrapInSpan } from './spans';
+import { belongsToControlFlow } from '../utils';
 
 function usesVar(expr: Expression, sym: Symbol): boolean {
     if (typeof expr === 'number' || typeof expr === 'boolean' || typeof expr === 'string') {
@@ -476,7 +477,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
 
 function areChildrenVisited(n: Node, allEdges: Edge[], allNodes: Node[], visited: Set<string>): boolean {
     // fetch all the children of the current node n
-    const outgoing = allEdges.filter(e => e.source === n.id)
+    const outgoing = allEdges.filter(e => e.source === n.id && e.data && e.data.kind === 'data');
 
     // check if all children (that are visitable) have been visited
     // a node can only be visited if all its (visitable) children
@@ -531,6 +532,27 @@ function visitable(allNodes: Node[], allEdges: Edge[], node: Node, traverseNodes
     return true;
 }
 
+function pickNextNode(visitableNodes: Node[], allEdges: Edge[], visited: Set<string>): Node {
+    // first candidates: nodes that have output data for other nodes
+    for (const n of visitableNodes) {
+        const outgoing = allEdges.filter(e => e.source === n.id && e.data && e.data.kind === 'data');
+        if (outgoing.length > 0) {
+            return n;
+        }
+    }
+
+    // second candidates: nodes that share input data with other already visited nodes
+    for (const n of visitableNodes) {
+        const sourceNodes = allEdges.filter(e => e.target === n.id && e.data && e.data.kind === 'data').map(e => e.source);
+        const sharedInputWithVisited = allEdges.some(e => sourceNodes.includes(e.source) && visited.has(e.target));
+        if (sharedInputWithVisited) {
+            return n;
+        }
+    }
+
+    return visitableNodes[0];
+}
+
 // Main function to generate IR from a set of nodes and edges
 export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], traverseNodes: Set<string>, visited: Set<string> | null): Expression {
     visited = visited || new Set<string>();
@@ -538,21 +560,114 @@ export function generateIrSubProgram(allNodes: Node[], allEdges: Edge[], travers
 
     // visit all nodes in traverseNodes
     while ([...traverseNodes].some(id => !visited!.has(id))) {
-        for (const n of allNodes) {
+        const visitableNodes = allNodes.filter(n => visitable(allNodes, allEdges, n, traverseNodes, visited!));
+        const node = pickNextNode(visitableNodes, allEdges, visited);
 
-            if (!visitable(allNodes, allEdges, n, traverseNodes, visited)) {
-                continue;
-            }
-
-            visited.add(n.id);
-            const node = allNodes.find(no => no.id === n.id)!;
-            result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
-            break;
-        }
+        visited.add(node.id);
+        result = generateIrSingleNode(node, allNodes, allEdges, result, visited, traverseNodes);
     }
 
     return result!;
 }
+
+function collectFlowNodes(node: Node, allEdges: Edge[]): Set<string> {
+    const flowNodes = new Set<string>();
+    const queue = [node.id];
+
+    while (queue.length > 0) {
+        const nodeId = queue.shift()!;
+        if (flowNodes.has(nodeId)) {
+            continue;
+        }
+        flowNodes.add(nodeId);
+
+        // Find all nodes that are connected by flow edges
+        const connectedNodes = allEdges
+            .filter(e => (e.source === nodeId || e.target === nodeId) && e.data && e.data.kind === 'data')
+            .map(e => e.source === nodeId ? e.target : e.source);
+        queue.push(...connectedNodes);
+    }
+
+    return flowNodes;
+}
+
+// can from reach to by following flow edges going forward?
+function canReach(from: string, to: string, flowEdges: Edge[]): boolean {
+    if (from === to) return false;
+
+    const visited = new Set<string>();
+    const queue = [from];
+
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        if (current === to) return true;
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        for (const edge of flowEdges) {
+            if (edge.source === current) {
+                queue.push(edge.target);
+            }
+        }
+    }
+
+    return false;
+}
+
+// TODO: we need a check that there are no cross-flow dependencies: error out
+export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Expression {
+    // result is a begin of all subprograms for each independent flow
+    // here we identify independent flows as groups of nodes that are connected by data edges
+    // to split into flows we identify flow roots as nodes that have incoming flow edges
+    const flowEdges = allEdges.filter(e => e.data && e.data.kind === 'flow');
+    const flowRoots = new Set<string>();
+    for (const fe of flowEdges) {
+        flowRoots.add(fe.target);
+        flowRoots.add(fe.source);
+    }
+
+    const sortedRoots = Array.from(flowRoots).sort((a, b) => canReach(a, b, flowEdges) ? -1 : 1);
+    let flows = sortedRoots.map(rootId => {
+        const rootNode = allNodes.find(n => n.id === rootId);
+        if (!rootNode) {
+            throw new Error(`Flow root node not found: ${rootId}`);
+        }
+        return collectFlowNodes(rootNode, allEdges);
+    });
+
+    // if no flows detected, create a single flow with all nodes
+    if (flows.length === 0) {
+        flows = [new Set(allNodes.map(n => n.id))];
+    }
+
+    // the result is a begin of all flow subprograms
+    const flowExprs: Expression[] = [];
+    const visited = new Set<string>();
+    for (const flowNodes of flows) {
+        const allNodesInFlow = allNodes.filter(n => flowNodes.has(n.id));
+        const filteredNodes = allNodesInFlow.filter(n => {
+            if (belongsToControlFlow(n.id, allEdges)) return false;
+            return true;
+        });
+        const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+
+        // TODO: maybe allNodesInFlow instead of allNodes?
+        const flowExpr = generateIrSubProgram(allNodes, allEdges, filteredNodeIds, visited);
+        flowExprs.push(flowExpr);
+    }
+
+    if (flowExprs.length === 1) {
+        return flowExprs[0];
+    }
+
+    return {
+        type: 'call',
+        name: 'begin',
+        output: false,
+        args: flowExprs
+    } as Call;
+}
+
 
 // export function wrapWithTracing(expr: Expression): Expression {
 //     const exporterCfg = newParamSymbol('exporter-config');
