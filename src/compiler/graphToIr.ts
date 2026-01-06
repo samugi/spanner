@@ -229,7 +229,16 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
     const parentSpan = parentSpanId ? nodes.find(n => n.id === parentSpanId) : null;
     // if there is a parent span for the current node, process the subprogram wrapped in the span first
     if (parentSpanId && parentSpan && !visited.has(parentSpanId) && traverseNodes.has(parentSpanId)) {
-        const subProgram = new Set(nodes.filter(n => n.parentId === parentSpanId)?.map(n => n.id));
+        // must collect all nodes in the span
+        // if it's a parent span, the subprogram includes nodes that are in subspans
+        // so they can be traversed as well recursively
+        let subProgram = new Set(nodes.filter(n => n.parentId === parentSpanId)?.map(n => n.id));
+        let subSpans = nodes.filter(n => n.parentId === parentSpanId && n.data.kind === 'span');
+        for (const ss of subSpans) {
+            const spanChildNodes = new Set(nodes.filter(n => n.parentId === ss.id)?.map(n => n.id));
+            spanChildNodes.forEach(id => subProgram.add(id));
+        }
+
         if (subProgram) {
             // because the subprogram includes the current node, and we have to process it,
             // we remove the current node from the visited set so it gets processed again
