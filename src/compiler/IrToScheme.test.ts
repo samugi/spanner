@@ -619,5 +619,69 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+    it('generates nested root span with sequential child spans and flow', () => {
+        const nodes: Node[] = [
+            {
+                id: '63',
+                type: 'span',
+                position: { x: 0, y: 0 },
+                data: {
+                    name: 'root',
+                    kind: 'span',
+                    wrappedNodeIds: ['46', '47', '48', '49'],
+                },
+            },
+            {
+                id: '64',
+                type: 'span',
+                position: { x: 0, y: 0 },
+                parentId: '63',
+                data: { name: 'cl', kind: 'span', wrappedNodeIds: ['46'] },
+            },
+            {
+                id: '65',
+                type: 'span',
+                position: { x: 0, y: 0 },
+                parentId: '63',
+                data: { name: 'sha', kind: 'span', wrappedNodeIds: ['47'] },
+            },
+            {
+                id: '66',
+                type: 'span',
+                position: { x: 0, y: 0 },
+                parentId: '63',
+                data: { name: 'shb', kind: 'span', wrappedNodeIds: ['48'] },
+            },
+
+            { id: '46', type: 'expr', parentId: '64', position: { x: 0, y: 0 }, data: { kind: 'call', name: 'http::proxy-http::response::clear', n_args: 0, output: true } },
+            { id: '47', type: 'expr', parentId: '65', position: { x: 0, y: 0 }, data: { kind: 'call', name: 'http::proxy-http::response::set-header', n_args: 2, output: true } },
+            { id: '48', type: 'expr', parentId: '66', position: { x: 0, y: 0 }, data: { kind: 'call', name: 'http::proxy-http::response::set-header', n_args: 2, output: true } },
+            { id: '49', type: 'expr', parentId: '63', position: { x: 0, y: 0 }, data: { kind: 'call', name: 'http::proxy-http::send-response', n_args: 0, output: true } },
+
+            { id: '50', type: 'expr', position: { x: 0, y: 0 }, data: { kind: 'literal', value: '":status"' } },
+            { id: '55', type: 'expr', position: { x: 0, y: 0 }, data: { kind: 'literal', value: '"404"' } },
+            { id: '52', type: 'expr', position: { x: 0, y: 0 }, data: { kind: 'literal', value: '"X-Custom"' } },
+            { id: '62', type: 'expr', position: { x: 0, y: 0 }, data: { kind: 'literal', value: '"SNI Not Matched"' } },
+        ]
+
+        const edges: Edge[] = [
+            { id: 'e1', source: '46', sourceHandle: 'flow-out', target: '47', targetHandle: 'flow-in', data: { kind: 'flow' } },
+            { id: 'e2', source: '47', sourceHandle: 'flow-out', target: '48', targetHandle: 'flow-in', data: { kind: 'flow' } },
+            { id: 'e3', source: '48', sourceHandle: 'flow-out', target: '49', targetHandle: 'flow-in', data: { kind: 'flow' } },
+
+            { id: 'e4', source: '50', sourceHandle: 'value', target: '47', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e5', source: '55', sourceHandle: 'value', target: '47', targetHandle: 'arg-1', data: { kind: 'data' } },
+            { id: 'e6', source: '52', sourceHandle: 'value', target: '48', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e7', source: '62', sourceHandle: 'value', target: '48', targetHandle: 'arg-1', data: { kind: 'data' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`(begin (let ((cx-63 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (cx-64 (stdlib-telemetry::tracing::start-span tracer "cl" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-64 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-64 0) p-tmp-64))) (let ((cx-65 (stdlib-telemetry::tracing::start-span tracer "sha" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-65 (http::proxy-http::response::set-header ":status" "404"))) (begin (stdlib-telemetry::tracing::end-span cx-65 0) p-tmp-65))) (let ((cx-66 (stdlib-telemetry::tracing::start-span tracer "shb" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-66 (http::proxy-http::response::set-header "X-Custom" "SNI Not Matched"))) (begin (stdlib-telemetry::tracing::end-span cx-66 0) p-tmp-66))) (let ((p-tmp-63 (http::proxy-http::send-response))) (begin (stdlib-telemetry::tracing::end-span cx-63 0) p-tmp-63)))`)
+        )
+    })
+
+
 
 })
