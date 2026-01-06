@@ -4,16 +4,16 @@ export type Let = {
     type: 'let',
     bindings: Binding[]
     body: Expression
-    spanIds?: string[]
-    activeSpanId?: string
+    spanIds: string[]
+    activeSpanId: string
 }
 
 export type LetStar = {
     type: 'let*',
     bindings: Binding[]
     body: Expression
-    spanIds?: string[]
-    activeSpanId?: string
+    spanIds: string[]
+    activeSpanId: string
 }
 
 export type Call = {
@@ -21,8 +21,8 @@ export type Call = {
     name: string
     args: Expression[]
     output: boolean
-    spanIds?: string[]
-    activeSpanId?: string
+    spanIds: string[]
+    activeSpanId: string
 }
 
 export type Binding = {

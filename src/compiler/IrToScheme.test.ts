@@ -179,7 +179,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2)) (begin (display p-lit2) (let* ((cx-span-sum (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-sum (+ 1 p-lit2))) (begin (stdlib-telemetry::tracing::end-span cx-span-sum 0) (let* ((cx-span-display (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-span-sum) (option::list::stdlib-telemetry_attribute::none) 0)) (p-display (display p-sum))) (begin (stdlib-telemetry::tracing::end-span cx-span-display 0) p-display)) p-sum))))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2)) (begin (display p-lit2) (let ((p-sum (let ((cx-span-sum (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-sum (+ 1 p-lit2))) (begin (stdlib-telemetry::tracing::end-span cx-span-sum 0) p-tmp-span-sum))))) (let ((cx-span-display (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-span-sum) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-display (display p-sum))) (begin (stdlib-telemetry::tracing::end-span cx-span-display 0) p-tmp-span-display))))))`))
     })
 
     it('computes if condition correctly', () => {
@@ -429,7 +429,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(if (> 3 1) (let* ((cx-span-11 (stdlib-telemetry::tracing::start-span tracer "sda" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-9 (let ((p-5 "foo")) (display p-5)))) (begin (stdlib-telemetry::tracing::end-span cx-span-11 0) p-9)) (display "bar"))`)
+            normalizeScheme(`(if (> 3 1) (let ((p-5 "foo")) (let ((cx-span-11 (stdlib-telemetry::tracing::start-span tracer "sda" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-11 (display p-5))) (begin (stdlib-telemetry::tracing::end-span cx-span-11 0) p-tmp-span-11)))) (display "bar"))`)
         )
     })
 

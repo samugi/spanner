@@ -32,7 +32,7 @@ export function generateScheme(expr: Expression): string {
         case 'var':
             return renderSymbol(expr.sym);
         case 'start-span':
-            return renderSpan({ kind: 'start-span', spanName: expr.spanName, context: renderSymbol(expr.context?.sym) });
+            return renderSpan({ kind: 'start-span', spanName: expr.spanName, context: expr.context ? renderSymbol(expr.context?.sym) : null });
 
         case 'end-span':
             return renderSpan({ kind: 'end-span', context: renderSymbol(expr.context?.sym) });

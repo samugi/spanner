@@ -1,365 +1,142 @@
 {
     "nodes": [
         {
-            "id": "61",
-            "type": "span",
+            "id": "lit1",
+            "type": "expr",
             "position": {
-                "x": -54,
-                "y": 74
-            },
-            "parentId": "58",
-            "data": {
-                "name": "shb",
-                "kind": "span",
-                "wrappedNodeIds": [
-                    "48"
-                ]
-            },
-            "style": {
-                "width": 300,
-                "height": 200
-            },
-            "width": 300,
-            "height": 200
-        },
-        {
-            "id": "60",
-            "type": "span",
-            "position": {
-                "x": 296.7378426769512,
-                "y": 80.26719361759251
-            },
-            "parentId": "58",
-            "data": {
-                "name": "sha",
-                "kind": "span",
-                "wrappedNodeIds": [
-                    "47"
-                ]
-            },
-            "style": {
-                "width": 300,
-                "height": 200
-            },
-            "width": 300,
-            "height": 200
-        },
-        {
-            "id": "59",
-            "type": "span",
-            "position": {
-                "x": 300.24762057764264,
+                "x": 0,
                 "y": 0
             },
-            "parentId": "58",
             "data": {
-                "name": "cl",
-                "kind": "span",
-                "wrappedNodeIds": [
-                    "46"
-                ]
-            },
-            "style": {
-                "width": 300,
-                "height": 200
-            },
-            "width": 300,
-            "height": 200
+                "kind": "literal",
+                "value": 1
+            }
         },
         {
-            "id": "58",
+            "id": "lit2",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "literal",
+                "value": 2
+            }
+        },
+        {
+            "id": "sum",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "+",
+                "n_args": 2
+            },
+            "parentId": "span-sum"
+        },
+        {
+            "id": "display",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "display",
+                "n_args": 1
+            },
+            "parentId": "span-display"
+        },
+        {
+            "id": "display2",
+            "type": "expr",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "kind": "call",
+                "name": "display",
+                "n_args": 1
+            }
+        },
+        {
+            "id": "span-sum",
             "type": "span",
             "position": {
-                "x": -66.8436487224646,
-                "y": 704.0622171218179
+                "x": 0,
+                "y": 0
             },
             "data": {
-                "name": "root",
+                "name": "sum-span",
                 "kind": "span",
                 "wrappedNodeIds": [
-                    "46",
-                    "47",
-                    "48",
-                    "49",
-                    "50",
-                    "52",
-                    "56",
-                    "57"
+                    "sum"
+                ]
+            }
+        },
+        {
+            "id": "span-display",
+            "type": "span",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "name": "display-span",
+                "kind": "span",
+                "wrappedNodeIds": [
+                    "display"
                 ]
             },
-            "style": {
-                "width": 300,
-                "height": 200
-            },
-            "width": 300,
-            "height": 200
-        },
-        {
-            "id": "46",
-            "position": {
-                "x": 40,
-                "y": 40
-            },
-            "data": {
-                "kind": "call",
-                "name": "http::proxy-http::response::clear",
-                "n_args": 0,
-                "output": true
-            },
-            "type": "expr",
-            "width": 269,
-            "height": 48,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 273.40397185517804,
-                "y": 744.0622171218179
-            },
-            "dragging": false,
-            "parentId": "59",
-            "extent": "parent"
-        },
-        {
-            "id": "47",
-            "position": {
-                "x": 40,
-                "y": 40
-            },
-            "data": {
-                "kind": "call",
-                "name": "http::proxy-http::response::set-header",
-                "n_args": 2,
-                "output": true
-            },
-            "type": "expr",
-            "width": 314,
-            "height": 86,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 269.8941939544866,
-                "y": 824.3294107394104
-            },
-            "dragging": false,
-            "parentId": "60",
-            "extent": "parent"
-        },
-        {
-            "id": "48",
-            "position": {
-                "x": 40,
-                "y": 40
-            },
-            "data": {
-                "kind": "call",
-                "name": "http::proxy-http::response::set-header",
-                "n_args": 2,
-                "output": true
-            },
-            "type": "expr",
-            "width": 316,
-            "height": 88,
-            "selected": true,
-            "positionAbsolute": {
-                "x": -80.8436487224646,
-                "y": 818.0622171218179
-            },
-            "dragging": false,
-            "parentId": "61",
-            "extent": "parent"
-        },
-        {
-            "id": "49",
-            "position": {
-                "x": 336.79280995620746,
-                "y": 373.1360936852948
-            },
-            "data": {
-                "kind": "call",
-                "name": "http::proxy-http::send-response",
-                "n_args": 0,
-                "output": true
-            },
-            "type": "expr",
-            "width": 267,
-            "height": 48,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 269.94916123374287,
-                "y": 1077.1983108071126
-            },
-            "dragging": false,
-            "parentId": "58",
-            "extent": "parent"
-        },
-        {
-            "id": "50",
-            "position": {
-                "x": 137.29013174313326,
-                "y": 90.6251751481891
-            },
-            "data": {
-                "kind": "literal",
-                "value": "\":status\"",
-                "name": "Literal \":status\""
-            },
-            "type": "expr",
-            "width": 86,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 70.44648302066867,
-                "y": 794.687392270007
-            },
-            "dragging": false,
-            "parentId": "58",
-            "extent": "parent"
-        },
-        {
-            "id": "52",
-            "position": {
-                "x": 87.27653323481962,
-                "y": 226.4236210563895
-            },
-            "data": {
-                "kind": "literal",
-                "value": "\"X-Custom\"",
-                "name": "Literal \"X-Custom\""
-            },
-            "type": "expr",
-            "width": 110,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": 20.43288451235503,
-                "y": 930.4858381782074
-            },
-            "dragging": false,
-            "parentId": "58",
-            "extent": "parent"
-        },
-        {
-            "id": "56",
-            "position": {
-                "x": 40,
-                "y": 332.64525839725275
-            },
-            "data": {
-                "kind": "literal",
-                "value": "\"hello there\"",
-                "name": "Literal \"hello there\""
-            },
-            "type": "expr",
-            "width": 113,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": -26.843648722464593,
-                "y": 1036.7074755190706
-            },
-            "dragging": false,
-            "parentId": "58",
-            "extent": "parent"
-        },
-        {
-            "id": "57",
-            "position": {
-                "x": 46.86296237801541,
-                "y": 126.03308929533137
-            },
-            "data": {
-                "kind": "literal",
-                "value": "\"200\"",
-                "name": "Literal \"200\""
-            },
-            "type": "expr",
-            "width": 67,
-            "height": 70,
-            "selected": false,
-            "positionAbsolute": {
-                "x": -19.980686344449186,
-                "y": 830.0953064171492
-            },
-            "dragging": false,
-            "parentId": "58",
-            "extent": "parent"
+            "parentId": "span-sum"
         }
     ],
     "edges": [
         {
-            "source": "46",
-            "sourceHandle": "flow-out",
-            "target": "47",
-            "targetHandle": "flow-in",
-            "data": {
-                "kind": "flow"
-            },
-            "id": "reactflow__edge-46flow-out-47flow-in",
-            "selected": false
-        },
-        {
-            "source": "47",
-            "sourceHandle": "flow-out",
-            "target": "48",
-            "targetHandle": "flow-in",
-            "data": {
-                "kind": "flow"
-            },
-            "id": "reactflow__edge-47flow-out-48flow-in",
-            "selected": false
-        },
-        {
-            "source": "48",
-            "sourceHandle": "flow-out",
-            "target": "49",
-            "targetHandle": "flow-in",
-            "data": {
-                "kind": "flow"
-            },
-            "id": "reactflow__edge-48flow-out-49flow-in",
-            "selected": false
-        },
-        {
-            "source": "50",
+            "id": "e1",
+            "source": "lit1",
+            "target": "sum",
             "sourceHandle": "value",
-            "target": "47",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            },
-            "id": "reactflow__edge-50value-47arg-0",
-            "selected": false
+            }
         },
         {
-            "source": "52",
+            "id": "e2",
+            "source": "lit2",
+            "target": "sum",
             "sourceHandle": "value",
-            "target": "48",
+            "targetHandle": "arg-1",
+            "data": {
+                "kind": "data"
+            }
+        },
+        {
+            "id": "e3",
+            "source": "sum",
+            "target": "display",
+            "sourceHandle": "value",
             "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            },
-            "id": "reactflow__edge-52value-48arg-0",
-            "selected": false
+            }
         },
         {
-            "source": "56",
+            "id": "e5",
+            "source": "lit2",
+            "target": "display2",
             "sourceHandle": "value",
-            "target": "48",
-            "targetHandle": "arg-1",
+            "targetHandle": "arg-0",
             "data": {
                 "kind": "data"
-            },
-            "id": "reactflow__edge-56value-48arg-1",
-            "selected": false
-        },
-        {
-            "source": "57",
-            "sourceHandle": "value",
-            "target": "47",
-            "targetHandle": "arg-1",
-            "data": {
-                "kind": "data"
-            },
-            "id": "reactflow__edge-57value-47arg-1",
-            "selected": false
+            }
         }
     ]
 }

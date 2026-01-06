@@ -62,7 +62,9 @@ function squashBegins(
             args: [
                 ...curr.args,
                 previous,
-            ]
+            ],
+            spanIds: [],
+            activeSpanId: "",
         } as Call;
     }
 
@@ -73,7 +75,9 @@ function squashBegins(
         args: [
             ...curr.args,
             ...previous.args,
-        ]
+        ],
+        spanIds: [],
+        activeSpanId: "",
     }
 }
 
@@ -174,7 +178,9 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
                 type: 'call',
                 name: previous.name,
                 args: newArgs,
-                output: previous.output
+                output: previous.output,
+                spanIds: previous.spanIds,
+                activeSpanId: previous.activeSpanId
             } as Call;
 
         case 'let':
@@ -318,7 +324,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                         { type: 'var', sym: testSym } as VarRef,
                         actionExpr
                     ],
-                    output: false
+                    output: false,
+                    spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
+                    activeSpanId: node.parentId || ""
                 }
                 condArgs.push(condCall);
             }
@@ -327,7 +335,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 type: 'call',
                 name: 'cond',
                 args: condArgs,
-                output: node.data.output !== false
+                output: node.data.output !== false,
+                spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
+                activeSpanId: node.parentId || ""
             }
 
             if (!previous) return condExpr;
@@ -337,7 +347,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 type: 'call',
                 name: 'begin',
                 output: false,
-                args: [condExpr]
+                args: [condExpr],
+                spanIds: [],
+                activeSpanId: ""
             } as Call;
             return squashBegins(previous, beginExpr);
         }
@@ -389,7 +401,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 ],
                 output: false,
                 spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
-                activeSpanId: node.parentId || undefined
+                activeSpanId: node.parentId || ""
             }
 
             if (!previous) return ifExpr;
@@ -399,7 +411,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 type: 'call',
                 name: 'begin',
                 output: false,
-                args: [ifExpr]
+                args: [ifExpr],
+                spanIds: [],
+                activeSpanId: ""
             } as Call;
             return squashBegins(previous, beginExpr);
         }
@@ -416,7 +430,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 args: args,
                 output: node.data.output !== false,
                 spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
-                activeSpanId: node.parentId || undefined
+                activeSpanId: node.parentId || ""
             }
 
             // if there is no previous expression, just return the call
@@ -433,7 +447,9 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     output: node.data.output,
                     args: [
                         callExpr
-                    ]
+                    ],
+                    spanIds: [],
+                    activeSpanId: ""
                 } as Call
                 return squashBegins(previous, beginExpr);
             }
@@ -675,7 +691,9 @@ export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[]): Express
         type: 'call',
         name: 'begin',
         output: false,
-        args: flowExprs
+        args: flowExprs,
+        spanIds: [],
+        activeSpanId: ""
     } as Call;
 }
 
@@ -819,6 +837,9 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
             }
 
             // end spans first
+            // this needs to make sure the previous value that was last
+            // is returned from the call, so it needs to let-bind it, execute the end-span calls,
+            // then return the previous value
             if (spanNodesToEnd.length > 0) {
                 const endSpanCalls = spanNodesToEnd.map(spanNode => {
                     const endSpan: EndSpan = {
@@ -827,15 +848,41 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
                     };
                     return endSpan;
                 });
+
+                const prevSym = newParamSymbol("tmp-" + spanNodesToEnd.map(n => n.id).join("-"));
                 currExpr = {
-                    type: 'call',
-                    name: 'begin',
-                    output: currExpr.type === 'call' && currExpr.output ? true : false,
-                    args: [
-                        currExpr,
-                        ...endSpanCalls
-                    ]
+                    type: 'let',
+                    bindings: [
+                        {
+                            sym: prevSym,
+                            expr: currExpr
+                        }
+                    ],
+                    body: {
+                        type: 'call',
+                        name: 'begin',
+                        output: true,
+                        args: [
+                            ...endSpanCalls,
+                            { type: 'var', sym: prevSym } as VarRef
+                        ],
+                        spanIds: [],
+                        activeSpanId: ""
+                    },
+                    spanIds: [],
+                    activeSpanId: ""
                 };
+                // currExpr = {
+                //     type: 'call',
+                //     name: 'begin',
+                //     output: currExpr.type === 'call' && currExpr.output ? true : false,
+                //     args: [
+                //         currExpr,
+                //         ...endSpanCalls
+                //     ],
+                //     spanIds: [],
+                //     activeSpanId: ""
+                // };
             }
 
             // then start spans
@@ -854,7 +901,9 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
                 currExpr = {
                     type: 'let',
                     bindings: startSpanBindings,
-                    body: currExpr
+                    body: currExpr,
+                    spanIds: [],
+                    activeSpanId: ""
                 }
             }
 
