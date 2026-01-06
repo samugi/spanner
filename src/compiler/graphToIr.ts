@@ -5,7 +5,7 @@
 
 import type { Node, Edge } from 'reactflow'
 import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan, isTraceableExpr } from './types'
-import _ from 'lodash';
+import _, { find } from 'lodash';
 import { newCxSymbol, newParamSymbol } from './spec';
 import { belongsToControlFlow } from '../utils';
 
@@ -804,7 +804,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
             // find spans for which this expression is the first usage
             const spanNodesToStart: Node[] = [];
             for (const spanNode of sortedSpanNodes) {
-                const firstUsage = findFirstUsageSpan(fullExpr, spanNode.id) === currExpr;
+                const firstUsage = _.isEqual(findFirstUsageSpan(fullExpr, spanNode.id), currExpr);
                 if (firstUsage) {
                     spanNodesToStart.push(spanNode);
                 }
@@ -812,7 +812,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
 
             const spanNodesToEnd: Node[] = [];
             for (const spanNode of [...sortedSpanNodes].reverse()) {
-                const lastUsage = findLastUsageSpan(fullExpr, spanNode.id) === currExpr;
+                const lastUsage = _.isEqual(findLastUsageSpan(fullExpr, spanNode.id), currExpr);
                 if (lastUsage) {
                     spanNodesToEnd.push(spanNode);
                 }
