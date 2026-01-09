@@ -99,6 +99,8 @@ function squashLets(
             ...expr.bindings,
         ],
         body: expr.body,
+        spanIds: expr.spanIds,
+        activeSpanId: expr.activeSpanId
     } as Let | LetStar
 }
 
@@ -198,7 +200,7 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             return {
                 type: previous.type,
                 bindings: newBindings,
-                body: newBody
+                body: newBody,
             } as Let | LetStar;
 
         case 'var':
@@ -800,16 +802,18 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
 
     switch (currExpr.type) {
         case 'call': {
+            let newExpr: Expression = currExpr;
+
             for (const arg of currExpr.args) {
                 const tArg = generateTir(arg, fullExpr, allNodes);
-                currExpr = {
-                    ...currExpr,
-                    args: currExpr.args.map(a => a === arg ? tArg : a)
+                newExpr = {
+                    ...newExpr,
+                    args: newExpr.args.map(a => _.isEqual(a, arg) ? tArg : a)
                 } as Call;
             }
 
             if (!spanIds) {
-                return currExpr;
+                return newExpr;
             }
             if (!spanNodes || spanNodes.some(n => n.data.kind !== 'span')) {
                 throw new Error(`Span node not found for some ids: ${spanIds}`);
@@ -863,12 +867,12 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
                 });
 
                 const prevSym = newParamSymbol("tmp-" + spanNodesToEnd.map(n => n.id).join("-"));
-                currExpr = {
+                newExpr = {
                     type: 'let',
                     bindings: [
                         {
                             sym: prevSym,
-                            expr: currExpr
+                            expr: newExpr
                         }
                     ],
                     body: {
@@ -911,16 +915,16 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
                         expr: startSpan
                     };
                 });
-                currExpr = {
+                newExpr = {
                     type: 'let',
                     bindings: startSpanBindings,
-                    body: currExpr,
+                    body: newExpr,
                     spanIds: [],
                     activeSpanId: ""
                 }
             }
 
-            return currExpr;
+            return newExpr;
         }
         case 'let':
         case 'let*': {
