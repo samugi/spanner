@@ -220,6 +220,12 @@
             "n_args": 3,
             "output": true
         },
+        "stdlib-matching::engine::make-matcher": {
+            "kind": "call",
+            "name": "stdlib-matching::engine::make-matcher",
+            "n_args": 3,
+            "output": true
+        },
         "stdlib-telemetry::tracing::exporter-config::with-protocol": {
             "kind": "call",
             "name": "stdlib-telemetry::tracing::exporter-config::with-protocol",
