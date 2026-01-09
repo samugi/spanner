@@ -372,18 +372,20 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             // and generate IR for those subgraphs separately, then add all those
             // nodes to the visited set to avoid re-processing them.
             const thenNodes = collectReachableNodes(thenEdge.source, edges, nodes, thenEdge);
+            const thenEdges = edges.filter(e => thenNodes.has(e.source) && thenNodes.has(e.target) && e !== thenEdge);
             const elseNodes = collectReachableNodes(elseEdge.source, edges, nodes, elseEdge);
+            const elseEdges = edges.filter(e => elseNodes.has(e.source) && elseNodes.has(e.target) && e !== elseEdge);
 
             const thenExpr = generateIrMultiFlow(
                 thenNodes.size > 0 ? nodes.filter(n => thenNodes.has(n.id)) : [],
-                edges,
+                thenEdges,
                 allSpanNodes,
                 visited
             )
             // thenNodes.forEach(id => visited.add(id));
             const elseExpr = generateIrMultiFlow(
                 elseNodes.size > 0 ? nodes.filter(n => elseNodes.has(n.id)) : [],
-                edges,
+                elseEdges,
                 allSpanNodes,
                 visited
             )
@@ -681,13 +683,13 @@ export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[], allSpanN
 
         const allDataNodesInFlow = allDataNodes.filter(n => flowNodes.has(n.id));
         // TODO: careful here
-        // // remove control flow nodes
-        // let filteredNodes = allDataNodesInFlow.filter(n => {
-        //     if (belongsToControlFlow(n.id, allEdges)) return false;
-        //     return true;
-        // });
+        // remove control flow branches
+        let filteredNodes = allDataNodesInFlow.filter(n => {
+            if (belongsToControlFlow(n.id, allEdges)) return false;
+            return true;
+        });
 
-        const filteredNodeIds = new Set(allDataNodesInFlow.map(n => n.id));
+        const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
 
         // TODO: maybe allNodesInFlow instead of allNodes?
         const flowExpr = generateIrSubProgram(allDataNodes, allEdges, allSpanNodes, filteredNodeIds, visited);

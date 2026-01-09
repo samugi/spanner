@@ -682,6 +682,75 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+    it('simple if-else', () => {
+        const nodes: Node[] = [
+            {
+                id: '6',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'not', n_args: 1, output: true },
+            },
+            {
+                id: '59',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'http::proxy-http::response::clear', n_args: 0, output: true },
+            },
+            {
+                id: '10',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'call', name: 'http::proxy-http::response::set-header', n_args: 2, output: true },
+            },
+            {
+                id: '11',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '":status"' },
+            },
+            {
+                id: '12',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '"200"' },
+            },
+            {
+                id: '63',
+                type: 'if',
+                position: { x: 0, y: 0 },
+                data: { kind: 'if', name: 'if' },
+            },
+            {
+                id: '64',
+                type: 'expr',
+                position: { x: 0, y: 0 },
+                data: { kind: 'literal', value: '9' },
+            },
+        ]
 
+        const edges: Edge[] = [
+            { id: 'e1', source: '11', sourceHandle: 'value', target: '10', targetHandle: 'arg-0', data: { kind: 'data' } },
+            { id: 'e2', source: '12', sourceHandle: 'value', target: '10', targetHandle: 'arg-1', data: { kind: 'data' } },
+
+            { id: 'e3', source: '59', sourceHandle: 'flow-out', target: '10', targetHandle: 'flow-in', data: { kind: 'flow' } },
+
+            { id: 'e4', source: '6', sourceHandle: 'value', target: '63', targetHandle: 'cond', data: { kind: 'data' } },
+
+            { id: 'e5', source: '59', sourceHandle: 'flow-out', target: '63', targetHandle: 'then', data: { kind: 'control' } },
+            { id: 'e6', source: '64', sourceHandle: 'value', target: '63', targetHandle: 'else', data: { kind: 'control' } },
+        ]
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`
+(if (not)
+  (begin
+    (http::proxy-http::response::clear)
+    (http::proxy-http::response::set-header ":status" "200"))
+  9)
+        `)
+        )
+    })
 
 })
