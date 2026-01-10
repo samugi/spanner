@@ -82,26 +82,30 @@ function squashBegins(
 }
 
 function squashLets(
-    expr: Expression,
-    outParam: Symbol,
-    outExpr: Expression
+    parentLet: Let | LetStar,
+    childLet: Let | LetStar
 ): Let | LetStar {
-    if (!isLetLike(expr)) {
-        throw new Error('Can only squash lets into Let or LetStar expressions');
+    // check if any of the child bindings depend on the parent bindings
+    // in which case we need a let* instead of a let
+    let needsLetStar = false;
+    for (const cb of childLet.bindings) {
+        for (const pb of parentLet.bindings) {
+            if (usesVar(cb.expr, pb.sym)) {
+                needsLetStar = true;
+                break;
+            }
+        }
+        if (needsLetStar) {
+            break;
+        }
     }
-
-    const needsLetStar = expr.bindings.some(b => usesVar(b.expr, outParam))
+    const combinedBindings = [...parentLet.bindings, ...childLet.bindings];
 
     return {
-        type: needsLetStar ? 'let*' : expr.type,
-        bindings: [
-            { sym: outParam, expr: outExpr },
-            ...expr.bindings,
-        ],
-        body: expr.body,
-        spanIds: expr.spanIds,
-        activeSpanId: expr.activeSpanId
-    } as Let | LetStar
+        type: needsLetStar ? 'let*' : 'let',
+        bindings: combinedBindings,
+        body: childLet.body,
+    } as Let;
 }
 
 // Collect all nodes reachable from a start node by following edges backwards (dependencies)
@@ -197,10 +201,16 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             });
 
             const newBody = replaceExprInPrevious(previous.body, oldSym, newExpr);
+            let spanIds = previous.spanIds || [];
+            if (isTraceableExpr(newExpr) && newExpr.spanIds) {
+                spanIds = [...new Set([...spanIds, ...newExpr.spanIds])];
+            }
+
             return {
                 type: previous.type,
                 bindings: newBindings,
                 body: newBody,
+                spanIds: spanIds,
             } as Let | LetStar;
 
         case 'var':
@@ -272,15 +282,25 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
+                let spanIds = [];
+                if (isTraceableExpr(node.data.value) && node.data.value.spanIds) {
+                    spanIds = node.data.value.spanIds;
+                }
+                if (isTraceableExpr(previous) && previous.spanIds) {
+                    spanIds = [...new Set([...spanIds, ...previous.spanIds])];
+                }
+
                 // If we can't expand in previous, we need to create a new outer scope
                 const squashed =
                     // if previous is a let-like, we can squash the literal into it
-                    isLetLike(previous) && squashLets(previous, nodeOutSymbol, node.data.value)
+                    // isLetLike(previous) && squashLets(previous, nodeOutSymbol, node.data.value)
                     // else create a new let
-                    || {
+                    // || {
+                    {
                         type: 'let',
                         bindings: [{ sym: nodeOutSymbol, expr: node.data.value }],
                         body: previous,
+                        spanIds: spanIds,
                     } as Let;
                 return squashed;
             }
@@ -393,6 +413,20 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             )
             // elseNodes.forEach(id => visited.add(id));
 
+            // collect all span IDs of this IF node
+            let spanIds: string[] = [];
+            // if (isTraceableExpr(thenExpr) && thenExpr.spanIds) {
+            //     spanIds = thenExpr.spanIds;
+            // }
+            // if (isTraceableExpr(elseExpr) && elseExpr.spanIds) {
+            //     spanIds = [...new Set([...spanIds, ...elseExpr.spanIds])];
+            // }
+            allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id).forEach(id => {
+                if (!spanIds.includes(id)) {
+                    spanIds.push(id);
+                }
+            });
+
             let ifExpr: Expression = {
                 type: 'call',
                 name: 'if',
@@ -402,7 +436,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     elseExpr
                 ],
                 output: false,
-                spanIds: allSpanNodes.filter(sn => sn.data.wrappedNodeIds.includes(node.id))?.map(sn => sn.id) || null,
+                spanIds: spanIds,
                 activeSpanId: node.parentId || ""
             }
 
@@ -463,22 +497,31 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
             }
 
+            let spanIds: string[] = [];
+            if (isTraceableExpr(callExpr) && callExpr.spanIds) {
+                spanIds = callExpr.spanIds;
+            }
+            if (isTraceableExpr(previous) && previous.spanIds) {
+                spanIds = [...new Set([...spanIds, ...previous.spanIds])];
+            }
+
             // output will be reused: create a let scope
             let binding = {
                 sym: nodeOutSymbol,
-                expr: callExpr
+                expr: callExpr,
             };
 
-            if (isLetLike(previous)) {
-                return squashLets(previous, binding.sym, binding.expr as Expression);
-            } else {
-                // has multiple outputs and a previous that is not a let: create a new let
-                return {
-                    type: 'let',
-                    bindings: [binding],
-                    body: previous
-                } as Expression;
-            }
+            // if (/*isLetLike(previous)*/ false) {
+            //     return squashLets(previous, binding.sym, binding.expr as Expression);
+            // } else {
+            // has multiple outputs and a previous that is not a let: create a new let
+            return {
+                type: 'let',
+                bindings: [binding],
+                body: previous,
+                spanIds: spanIds,
+            } as Expression;
+            // }
 
         }
         case 'span': {
@@ -644,7 +687,6 @@ function canReach(from: string, to: string, flowEdges: Edge[]): boolean {
     return false;
 }
 
-// TODO: we need a check that there are no cross-flow dependencies: error out
 export function generateIrMultiFlow(allNodes: Node[], allEdges: Edge[], allSpanNodes: Node[] | null, visited: Set<string> | null): Expression {
     const allDataNodes = allNodes.filter(n => n.data.kind !== 'span');
     allSpanNodes = allSpanNodes || allNodes.filter(n => n.data.kind === 'span');
@@ -744,6 +786,38 @@ function findFirstUsageSpan(expr: Expression, spanId: string): Expression | null
     }
 }
 
+function findAnyUsageSpan(expr: Expression, spanId: string): boolean {
+    if (!isTraceableExpr(expr)) {
+        return false;
+    }
+
+    switch (expr.type) {
+        case 'call':
+            if (expr.spanIds && expr.spanIds.some(id => id === spanId)) {
+                return true;
+            }
+            for (const arg of expr.args) {
+                const result = findAnyUsageSpan(arg, spanId);
+                if (result) {
+                    return true;
+                }
+            }
+            return false;
+        case 'let':
+        case 'let*':
+            for (const b of expr.bindings) {
+                const result = findAnyUsageSpan(b.expr, spanId);
+                if (result) {
+                    return true;
+                }
+            }
+            return findAnyUsageSpan(expr.body, spanId);
+
+        default:
+            return false;
+    }
+}
+
 // must find the last usage (in a depth-first traversal) of a span in an expression
 // so that we know when the span can be closed
 // it must traverse all the graph because the last usage may be in a different branch
@@ -785,56 +859,125 @@ function findLastUsageSpan(expr: Expression, spanId: string): Expression | null 
     }
 }
 
+function wrapInSpans(expr: Expression, spanNodesToEnd: Node[], spanNodesToStart: Node[], activeSpanNode: Node | null): Expression {
+    // end spans first
+    // this needs to make sure the previous value that was last
+    // is returned from the call, so it needs to let-bind it, execute the end-span calls,
+    // then return the previous value
+    if (spanNodesToEnd.length > 0) {
+        const endSpanCalls = spanNodesToEnd.map(spanNode => {
+            const endSpan: EndSpan = {
+                type: 'end-span',
+                context: { type: 'var', sym: newCxSymbol(spanNode.id) }
+            };
+            return endSpan;
+        });
+
+        const prevSym = newParamSymbol("tmp-" + spanNodesToEnd.map(n => n.id).join("-"));
+
+        expr = {
+            type: 'let',
+            bindings: [
+                {
+                    sym: prevSym,
+                    expr: expr
+                }
+            ],
+            body: {
+                type: 'call',
+                name: 'begin',
+                output: true,
+                args: [
+                    ...endSpanCalls,
+                    { type: 'var', sym: prevSym } as VarRef
+                ],
+                spanIds: [],
+                activeSpanId: ""
+            },
+            spanIds: [],
+            activeSpanId: ""
+        };
+
+    }
+
+    // then start spans
+    if (spanNodesToStart.length > 0) {
+        const startSpanBindings = spanNodesToStart.map(spanNode => {
+            const startSpan: StartSpan = {
+                type: 'start-span',
+                spanName: spanNode.data.name,
+                context: activeSpanNode?.parentId ? { type: 'var', sym: newCxSymbol(activeSpanNode.parentId) } : null
+            };
+            return {
+                sym: newCxSymbol(spanNode.id),
+                expr: startSpan
+            };
+        });
+        expr = {
+            type: 'let',
+            bindings: startSpanBindings,
+            body: expr,
+            spanIds: [],
+            activeSpanId: ""
+        }
+    }
+    return expr;
+}
+
 
 
 // recursively finds expressions that have an active span (spanId)
 // starts every span before the first expression that uses it
 // ends every span after the last expression that uses it
-export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes: Node[]): Expression {
+export function generateTir(currExpr: Expression, fullExpr: Expression, spanNodesToUse: Node[], allSpanNodes: Node[]): Expression {
     if (!isExprObj(currExpr) || !isTraceableExpr(currExpr)) {
         return currExpr;
     }
 
     let spanIds = currExpr.spanIds ? currExpr.spanIds : null;
-    let spanNodes = spanIds ? allNodes.filter(n => spanIds.includes(n.id)) : null;
+    let spanNodes = spanIds ? spanNodesToUse.filter(n => spanIds.includes(n.id)) : null;
     let activeSpanId = currExpr.activeSpanId ? currExpr.activeSpanId : null;
-    let activeSpanNode = activeSpanId ? allNodes.find(n => n.id === activeSpanId) : null;
+    let activeSpanNode = activeSpanId ? allSpanNodes.find(n => n.id === activeSpanId) : null;
+    let sortedSpanNodes: Node[] = [];
+
+    if (spanIds && spanNodes) {
+        if (spanNodes.some(n => n.data.kind !== 'span')) {
+            throw new Error(`Span node not found for some ids: ${spanIds}`);
+        }
+
+        sortedSpanNodes = spanNodes.sort((a, b) => {
+            const aParentId = a.parentId;
+            const bParentId = b.parentId;
+
+            // If a is parent of b, a should come before b
+            if (a.id === bParentId) return -1;
+            // If b is parent of a, b should come before a
+            if (b.id === aParentId) return 1;
+
+            // If a has no parent (root), it comes first
+            if (!aParentId && bParentId) return -1;
+            // If b has no parent (root), it comes first
+            if (aParentId && !bParentId) return 1;
+
+            return 0;
+        });
+    }
 
     switch (currExpr.type) {
         case 'call': {
             let newExpr: Expression = currExpr;
 
             for (const arg of currExpr.args) {
-                const tArg = generateTir(arg, fullExpr, allNodes);
+                const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes);
                 newExpr = {
                     ...newExpr,
                     args: newExpr.args.map(a => _.isEqual(a, arg) ? tArg : a)
                 } as Call;
             }
 
-            if (!spanIds) {
+            if (sortedSpanNodes.length === 0) {
                 return newExpr;
             }
-            if (!spanNodes || spanNodes.some(n => n.data.kind !== 'span')) {
-                throw new Error(`Span node not found for some ids: ${spanIds}`);
-            }
-
-            const sortedSpanNodes = spanNodes.sort((a, b) => {
-                const aParentId = a.parentId;
-                const bParentId = b.parentId;
-
-                // If a is parent of b, a should come before b
-                if (a.id === bParentId) return -1;
-                // If b is parent of a, b should come before a
-                if (b.id === aParentId) return 1;
-
-                // If a has no parent (root), it comes first
-                if (!aParentId && bParentId) return -1;
-                // If b has no parent (root), it comes first
-                if (aParentId && !bParentId) return 1;
-
-                return 0;
-            });
 
             // find spans for which this expression is the first usage
             const spanNodesToStart: Node[] = [];
@@ -853,176 +996,128 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, allNodes
                 }
             }
 
-            // end spans first
-            // this needs to make sure the previous value that was last
-            // is returned from the call, so it needs to let-bind it, execute the end-span calls,
-            // then return the previous value
-            if (spanNodesToEnd.length > 0) {
-                const endSpanCalls = spanNodesToEnd.map(spanNode => {
-                    const endSpan: EndSpan = {
-                        type: 'end-span',
-                        context: { type: 'var', sym: newCxSymbol(spanNode.id) }
-                    };
-                    return endSpan;
-                });
+            activeSpanNode = activeSpanNode ? activeSpanNode : (spanNodesToStart.length > 0 ? spanNodesToStart[0] : null);
 
-                const prevSym = newParamSymbol("tmp-" + spanNodesToEnd.map(n => n.id).join("-"));
-                newExpr = {
-                    type: 'let',
-                    bindings: [
-                        {
-                            sym: prevSym,
-                            expr: newExpr
-                        }
-                    ],
-                    body: {
-                        type: 'call',
-                        name: 'begin',
-                        output: true,
-                        args: [
-                            ...endSpanCalls,
-                            { type: 'var', sym: prevSym } as VarRef
-                        ],
-                        spanIds: [],
-                        activeSpanId: ""
-                    },
-                    spanIds: [],
-                    activeSpanId: ""
-                };
-                // currExpr = {
-                //     type: 'call',
-                //     name: 'begin',
-                //     output: currExpr.type === 'call' && currExpr.output ? true : false,
-                //     args: [
-                //         currExpr,
-                //         ...endSpanCalls
-                //     ],
-                //     spanIds: [],
-                //     activeSpanId: ""
-                // };
-            }
-
-            // then start spans
-            if (spanNodesToStart.length > 0) {
-                const startSpanBindings = spanNodesToStart.map(spanNode => {
-                    const startSpan: StartSpan = {
-                        type: 'start-span',
-                        spanName: spanNode.data.name,
-                        context: activeSpanNode?.parentId ? { type: 'var', sym: newCxSymbol(activeSpanNode.parentId) } : null
-                    };
-                    return {
-                        sym: newCxSymbol(spanNode.id),
-                        expr: startSpan
-                    };
-                });
-                newExpr = {
-                    type: 'let',
-                    bindings: startSpanBindings,
-                    body: newExpr,
-                    spanIds: [],
-                    activeSpanId: ""
-                }
-            }
-
-            return newExpr;
+            return wrapInSpans(newExpr, spanNodesToEnd, spanNodesToStart, activeSpanNode);
         }
         case 'let':
         case 'let*': {
-            for (const b of currExpr.bindings) {
-                const tExpr = generateTir(b.expr, fullExpr, allNodes);
-                currExpr = {
-                    ...currExpr,
-                    bindings: currExpr.bindings.map(bind => bind === b ? { ...bind, expr: tExpr } : bind)
-                } as Let | LetStar;
+            // what in the let needs to access the span ctx?
+            // * if it's both the bindings and the body: wrap the entire let
+            // * if it's not the body but multiple bindings: wrap the entire let
+            // * if it's only the body: wrap only the body (generateTir on body)
+            // * if it's only one binding: wrap only that binding (generateTir on individual bindings)
+
+            // so what we do is:
+            // 1. collect all spans that wrap the whole let, i.e. they are used in both bindings and body
+            //    or in multiple bindings. Start them before the let, end them after the let
+            // 2. collect all spans that are only used in the body: generateTir on body with those spans
+            // 3. collect all spans that are only used in individual bindings: generateTir on those bindings
+
+            const spanNodesToWrapLet: Node[] = [];
+            const spanNodesToProcessBody: Node[] = [];
+            const spanNodesToProcessBindings: Node[] = [];
+
+            for (const spanNode of sortedSpanNodes) {
+                let usedInBindings = 0;
+                for (const b of currExpr.bindings) {
+                    if (findAnyUsageSpan(b.expr, spanNode.id)) {
+                        usedInBindings++;
+                    }
+                }
+                const usedInBody = findAnyUsageSpan(currExpr.body, spanNode.id);
+
+                // span is used in bindings and body or in multiple bindings: wrap entire let
+                if ((usedInBindings > 0 && usedInBody) || (usedInBindings > 1)) {
+                    spanNodesToWrapLet.push(spanNode);
+
+                    // span is used only in body
+                } else if (usedInBody) {
+                    spanNodesToProcessBody.push(spanNode);
+
+                    // span is used only in one binding
+                } else if (usedInBindings === 1) {
+                    // find which binding
+                    spanNodesToProcessBindings.push(spanNode);
+                }
             }
-            const tBody = generateTir(currExpr.body, fullExpr, allNodes);
-            currExpr = {
+
+            let newBody = currExpr.body;
+            if (spanNodesToProcessBody.length > 0) {
+                newBody = generateTir(currExpr.body, fullExpr, spanNodesToProcessBody, allSpanNodes);
+            }
+
+            const newBindings = currExpr.bindings.map(b => {
+                return {
+                    sym: b.sym,
+                    expr: generateTir(b.expr, fullExpr, spanNodesToProcessBindings, allSpanNodes)
+                };
+            });
+
+            let newLetExpr: Expression = {
                 ...currExpr,
-                body: tBody
+                body: newBody,
+                bindings: newBindings
             } as Let | LetStar;
-            return currExpr;
+
+            activeSpanNode = activeSpanNode ? activeSpanNode : (spanNodesToWrapLet.length > 0 ? spanNodesToWrapLet[0] : null);
+
+            if (spanNodesToWrapLet.length > 0) {
+                newLetExpr = wrapInSpans(newLetExpr, spanNodesToWrapLet, spanNodesToWrapLet, activeSpanNode ? activeSpanNode : null);
+            }
+
+            return newLetExpr;
         }
         default:
             return currExpr;
     }
 }
 
-// export function wrapWithTracing(expr: Expression): Expression {
-//     const exporterCfg = newParamSymbol('exporter-config');
-//     const provider = newParamSymbol('provider');
-//     const tracer = newParamSymbol('tracer');
+// uses squashLets to compress nested lets where possible
+export function compressTir(expr: Expression): Expression {
+    if (!isExprObj(expr)) {
+        return expr;
+    }
 
-//     return {
-//         type: 'let',
-//         bindings: [
-//             {
-//                 sym: exporterCfg,
-//                 expr: {
-//                     type: 'call',
-//                     name: 'stdlib-telemetry::tracing::exporter-config::with-protocol',
-//                     args: [
-//                         {
-//                             type: 'call',
-//                             name: 'stdlib-telemetry::tracing::exporter-config::with-endpoint',
-//                             args: [
-//                                 {
-//                                     type: 'call',
-//                                     name: 'stdlib-telemetry::tracing::exporter-config::new-default',
-//                                     args: [],
-//                                 },
-//                                 "http://jaeger:4318/v1/traces",
-//                             ],
-//                         },
-//                         {
-//                             type: 'call',
-//                             name: 'stdlib-telemetry::common::new-http-protocol',
-//                             args: [],
-//                         }
-//                     ],
-//                 }
-//             }
-//         ],
-//         body: {
-//             type: 'let',
-//             bindings: [
-//                 {
-//                     sym: provider,
-//                     expr: {
-//                         type: 'call',
-//                         name: 'stdlib-telemetry::tracing::new-provider',
-//                         args: [
-//                             { type: 'var', sym: exporterCfg } as VarRef,
-//                             1000,
-//                             {
-//                                 type: 'call',
-//                                 name: 'option::stdlib-telemetry_resource::none',
-//                                 args: [],
-//                             }
-//                         ],
-//                     }
-//                 }
-//             ],
-//             body: {
-//                 type: 'let',
-//                 bindings: [
-//                     {
-//                         sym: tracer,
-//                         expr: {
-//                             type: 'call',
-//                             name: 'stdlib-telemetry::tracing::new-tracer',
-//                             args: [
-//                                 { type: 'var', sym: provider } as VarRef,
-//                                 {
-//                                     type: 'call',
-//                                     name: 'option::stdlib-telemetry_scope::none',
-//                                     args: [],
-//                                 }
-//                             ],
-//                         }
-//                     }
-//                 ],
-//                 body: expr
-//             }
-//         }
-//     } as Let;
-// }
+    switch (expr.type) {
+        case 'call': {
+            let newExpr: Expression = expr;
+
+            for (const arg of expr.args) {
+                const cArg = compressTir(arg);
+                newExpr = {
+                    ...newExpr,
+                    args: newExpr.args.map(a => _.isEqual(a, arg) ? cArg : a)
+                } as Call;
+            }
+
+            return newExpr;
+        }
+        case 'let':
+        case 'let*': {
+            let newBody = compressTir(expr.body);
+            let newBindings = expr.bindings.map(b => {
+                return {
+                    sym: b.sym,
+                    expr: compressTir(b.expr)
+                };
+            });
+
+            let newLet = {
+                ...expr,
+                body: newBody,
+                bindings: newBindings
+            } as Let | LetStar;
+
+            let compressedLet = newLet;
+            if (isLetLike(newBody)) {
+                // squash the body let into this let
+                compressedLet = squashLets(newLet, newBody);
+            }
+
+            return compressedLet;
+        }
+        default:
+            return expr;
+    }
+}

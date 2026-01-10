@@ -1,6 +1,6 @@
 import { generateScheme, wrapSchemeWithTracing } from "./IrToScheme";
 import type { Node, Edge } from 'reactflow'
-import { generateIrMultiFlow, generateTir } from './graphToIr'
+import { compressTir, generateIrMultiFlow, generateTir } from './graphToIr'
 
 function hasTracing(nodes: Node[]): boolean {
     return nodes.some(n => n.data?.kind === 'span');
@@ -8,8 +8,9 @@ function hasTracing(nodes: Node[]): boolean {
 
 export function generateProgram(nodes: Node[], edges: Edge[]): string {
     const result = generateIrMultiFlow(nodes, edges, null, null);
-    const spannedResult = generateTir(result, result, nodes);
-    return generateScheme(spannedResult || '');
+    const spannedResult = generateTir(result, result, nodes.filter(n => n.data?.kind === 'span'), nodes.filter(n => n.data?.kind === 'span'));
+    const compressedResult = compressTir(spannedResult);
+    return generateScheme(compressedResult || '');
 }
 
 export function generateTracedProgram(nodes: Node[], edges: Edge[]): string {
