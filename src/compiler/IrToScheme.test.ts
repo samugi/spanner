@@ -1299,4 +1299,226 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+    it('if with only span on the if', () => {
+        const nodes: Node[] = [
+            {
+                "id": "122",
+                "type": "span",
+                "position": {
+                    "x": 1029.4650006306185,
+                    "y": 455.27296698589043
+                },
+                "data": {
+                    "name": "fiffo",
+                    "kind": "span",
+                    "wrappedNodeIds": [
+                        "104"
+                    ]
+                },
+                "style": {
+                    "width": 300,
+                    "height": 200
+                },
+                "width": 300,
+                "height": 200
+            },
+            {
+                "id": "104",
+                "position": {
+                    "x": 40,
+                    "y": 40
+                },
+                "data": {
+                    "kind": "if",
+                    "name": "if"
+                },
+                "type": "if",
+                "width": 146,
+                "height": 132,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1069.4650006306185,
+                    "y": 495.27296698589043
+                },
+                "dragging": false,
+                "parentId": "122",
+                "extent": "parent"
+            },
+            {
+                "id": "105",
+                "position": {
+                    "x": 448.2885709016151,
+                    "y": 698.0339097275071
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::response::clear",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 269,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 448.2885709016151,
+                    "y": 698.0339097275071
+                },
+                "dragging": false
+            },
+            {
+                "id": "123",
+                "position": {
+                    "x": 651.6971908049763,
+                    "y": 433.9495617259498
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "21",
+                    "name": "Literal 21"
+                },
+                "type": "expr",
+                "width": 67,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 651.6971908049763,
+                    "y": 433.9495617259498
+                },
+                "dragging": false
+            },
+            {
+                "id": "125",
+                "position": {
+                    "x": 428.3945506189957,
+                    "y": 878.0187180376086
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::send-response",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 267,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 428.3945506189957,
+                    "y": 878.0187180376086
+                },
+                "dragging": false
+            },
+            {
+                "id": "126",
+                "position": {
+                    "x": 770.0269548303278,
+                    "y": 721.5439469320793
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "core::server::stream::get-metadata",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 287,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 770.0269548303278,
+                    "y": 721.5439469320793
+                },
+                "dragging": false
+            },
+            {
+                "id": "127",
+                "position": {
+                    "x": 769.2876201782235,
+                    "y": 854.9499863362112
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "option::stdlib-telemetry_context::none",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 313,
+                "height": 50,
+                "selected": true,
+                "positionAbsolute": {
+                    "x": 769.2876201782235,
+                    "y": 854.9499863362112
+                },
+                "dragging": false
+            }
+        ];
+
+        const edges: Edge[] = [
+            {
+                "source": "105",
+                "sourceHandle": "flow-out",
+                "target": "104",
+                "targetHandle": "then",
+                "data": {
+                    "kind": "control"
+                },
+                "id": "reactflow__edge-105flow-out-104then",
+                "selected": false
+            },
+            {
+                "source": "123",
+                "sourceHandle": "value",
+                "target": "104",
+                "targetHandle": "cond",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-123value-104cond",
+                "selected": false
+            },
+            {
+                "source": "105",
+                "sourceHandle": "flow-out",
+                "target": "125",
+                "targetHandle": "flow-in",
+                "data": {
+                    "kind": "flow"
+                },
+                "id": "reactflow__edge-105flow-out-125flow-in"
+            },
+            {
+                "source": "126",
+                "sourceHandle": "flow-out",
+                "target": "104",
+                "targetHandle": "else",
+                "data": {
+                    "kind": "control",
+                    "branch": "else"
+                },
+                "id": "reactflow__edge-126flow-out-104else"
+            },
+            {
+                "source": "126",
+                "sourceHandle": "flow-out",
+                "target": "127",
+                "targetHandle": "flow-in",
+                "data": {
+                    "kind": "flow"
+                },
+                "id": "reactflow__edge-126flow-out-127flow-in"
+            }
+        ];
+
+
+
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`(let ((cx-122 (stdlib-telemetry::tracing::start-span tracer "fiffo" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 21 (begin (http::proxy-http::response::clear) (http::proxy-http::send-response)) (begin (core::server::stream::get-metadata) (option::stdlib-telemetry_context::none))))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
+        )
+    })
+
 })

@@ -968,22 +968,6 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
             if (currExpr.name === 'begin') {
                 let argsExprs: Expression[] = [];
 
-                if (sortedSpanNodes.length === 0) {
-                    // no spans to wrap, just process all args normally
-                    for (const arg of currExpr.args) {
-                        const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes, startedSpans, endedSpans);
-                        argsExprs.push(tArg);
-                    }
-
-                    newExpr = {
-                        ...newExpr,
-                        args: argsExprs
-                    } as Call;
-
-                    return newExpr;
-                }
-
-
                 // for each span, check if it has first and last usage in different args
                 for (const spanNode of sortedSpanNodes) {
                     if (startedSpans.has(spanNode.id) && endedSpans.has(spanNode.id)) {
@@ -1001,7 +985,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                         const lastArgIndex = currExpr.args.findIndex(a => _.isEqual(a, lastUsage));
 
                         if (firstArgIndex === -1 && lastArgIndex === -1) {
-                            // span not used in this begin's args, continue to next span
+                            // span not used in this begin's args,
                             continue;
                         }
 
@@ -1057,6 +1041,14 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                             argsExprs.push(tArg);
                         }
 
+                    }
+                }
+
+                if (argsExprs.length === 0) {
+                    // no spans wrapped anything, process all args normally
+                    for (const arg of currExpr.args) {
+                        const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes, startedSpans, endedSpans);
+                        argsExprs.push(tArg);
                     }
                 }
 
