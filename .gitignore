@@ -26,3 +26,4 @@ dist-ssr
 # Test stuff
 *.test.scm
 *.test.json
+*.ignore*

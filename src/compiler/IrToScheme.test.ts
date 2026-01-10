@@ -755,48 +755,430 @@ describe('generateProgram: spans + dataflow', () => {
 
 
 
-    // TODO: FIXME: THIS IS BROKEN - see the scope of cx-7
-    it('simple if-else', () => {
+    it('simple if-else with spans', () => {
         const nodes: Node[] = [
-            { id: '6', type: 'span', data: { name: 'root', kind: 'span', wrappedNodeIds: ['1', '2', '3', '4', '5'] }, position: { x: 0, y: 0 } },
-            { id: '7', type: 'span', parentId: '6', data: { name: 'dissend', kind: 'span', wrappedNodeIds: ['3', '4', '5'] }, position: { x: 0, y: 0 } },
-            { id: '8', type: 'span', parentId: '7', data: { name: 'send', kind: 'span', wrappedNodeIds: ['5'] }, position: { x: 0, y: 0 } },
-
-            { id: '1', type: 'if', parentId: '6', data: { kind: 'if', name: 'if' }, position: { x: 0, y: 0 } },
-            { id: '2', type: 'expr', parentId: '6', data: { kind: 'literal', value: '#t' }, position: { x: 0, y: 0 } },
-            { id: '3', type: 'expr', parentId: '7', data: { kind: 'call', name: 'display', n_args: 1 }, position: { x: 0, y: 0 } },
-            { id: '4', type: 'expr', parentId: '7', data: { kind: 'literal', value: '1' }, position: { x: 0, y: 0 } },
-            { id: '5', type: 'expr', parentId: '8', data: { kind: 'call', name: 'http::proxy-http::send-response', n_args: 0 }, position: { x: 0, y: 0 } },
+            {
+                id: '8',
+                type: 'span',
+                position: { x: 290.9361686917557, y: 388.77146104021136 },
+                parentId: '6',
+                data: {
+                    name: 'clespan',
+                    kind: 'span',
+                    wrappedNodeIds: ['5'],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: '7',
+                type: 'span',
+                position: { x: 0, y: 142.60095883739854 },
+                parentId: '6',
+                data: {
+                    name: 'dispan',
+                    kind: 'span',
+                    wrappedNodeIds: ['3', '4'],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: '6',
+                type: 'span',
+                position: { x: -295.4661920671781, y: -29.320561031180603 },
+                data: {
+                    name: 'root',
+                    kind: 'span',
+                    wrappedNodeIds: ['1', '2', '3', '4', '5'],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: '1',
+                type: 'if',
+                parentId: '6',
+                extent: 'parent',
+                position: { x: 573.7414002886209, y: 70.10031035226336 },
+                positionAbsolute: { x: 278.27520822144277, y: 40.779749321082754 },
+                data: { kind: 'if', name: 'if' },
+                width: 146,
+                height: 132,
+                selected: false,
+                dragging: false,
+            },
+            {
+                id: '2',
+                type: 'expr',
+                parentId: '6',
+                extent: 'parent',
+                position: { x: 354.25307017503764, y: 40 },
+                positionAbsolute: { x: 58.78687810785955, y: 10.679438968819397 },
+                data: { kind: 'literal', value: '#t', name: 'Literal #t' },
+                width: 67,
+                height: 70,
+                selected: false,
+                dragging: false,
+            },
+            {
+                id: '3',
+                type: 'expr',
+                parentId: '7',
+                extent: 'parent',
+                position: { x: 185.6682896809261, y: 40 },
+                positionAbsolute: { x: -109.79790238625199, y: 153.28039780621793 },
+                data: { kind: 'call', name: 'display', n_args: 1, output: false },
+                width: 146,
+                height: 67,
+                selected: false,
+                dragging: false,
+            },
+            {
+                id: '4',
+                type: 'expr',
+                parentId: '7',
+                extent: 'parent',
+                position: { x: 40, y: 53.14405831890687 },
+                positionAbsolute: { x: -255.4661920671781, y: 166.4244561251248 },
+                data: { kind: 'literal', value: '1', name: 'Literal 1' },
+                width: 67,
+                height: 70,
+                selected: false,
+                dragging: false,
+            },
+            {
+                id: '5',
+                type: 'expr',
+                parentId: '8',
+                extent: 'parent',
+                position: { x: 40, y: 40 },
+                positionAbsolute: { x: 35.46997662457758, y: 399.45090000903076 },
+                data: {
+                    kind: 'call',
+                    name: 'http::proxy-http::response::clear',
+                    n_args: 0,
+                    output: true,
+                },
+                width: 269,
+                height: 48,
+                selected: false,
+                dragging: false,
+            },
         ]
 
         const edges: Edge[] = [
-            { id: 'e1', source: '2', target: '1', sourceHandle: 'value', targetHandle: 'cond', data: { kind: 'data' } },
-            { id: 'e2', source: '3', target: '1', sourceHandle: 'flow-out', targetHandle: 'then', data: { kind: 'control', branch: 'then' } },
-            { id: 'e3', source: '4', target: '3', sourceHandle: 'value', targetHandle: 'arg-0', data: { kind: 'data' } },
-            { id: 'e4', source: '5', target: '1', sourceHandle: 'value', targetHandle: 'else', data: { kind: 'control', branch: 'else' } },
+            {
+                id: 'reactflow__edge-2value-1cond',
+                source: '2',
+                sourceHandle: 'value',
+                target: '1',
+                targetHandle: 'cond',
+                data: { kind: 'data' },
+                selected: false,
+            },
+            {
+                id: 'reactflow__edge-4value-3arg-0',
+                source: '4',
+                sourceHandle: 'value',
+                target: '3',
+                targetHandle: 'arg-0',
+                data: { kind: 'data' },
+                selected: false,
+            },
+            {
+                id: 'reactflow__edge-3flow-out-1then',
+                source: '3',
+                sourceHandle: 'flow-out',
+                target: '1',
+                targetHandle: 'then',
+                data: { kind: 'control' },
+                selected: false,
+            },
+            {
+                id: 'reactflow__edge-5flow-out-1else',
+                source: '5',
+                sourceHandle: 'flow-out',
+                target: '1',
+                targetHandle: 'else',
+                data: { kind: 'control' },
+                selected: false,
+            },
         ]
+
 
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`
-(let ((p-2 #t))
-  (let ((cx-6 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)))
-    (let ((p-tmp-6 (if p-2
-            (let ((p-4 1))
-              (let ((cx-7 (stdlib-telemetry::tracing::start-span tracer "dissend" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)))
-                (display p-4)))
-            (let ((cx-8 (stdlib-telemetry::tracing::start-span tracer "send" (option::stdlib-telemetry_context::some cx-7) (option::list::stdlib-telemetry_attribute::none) 0)))
-              (let ((p-tmp-8-7 (http::proxy-http::send-response)))
-                (begin (stdlib-telemetry::tracing::end-span cx-8 0)
-                  (stdlib-telemetry::tracing::end-span cx-7 0)
-                  p-tmp-8-7))))))
-      (begin (stdlib-telemetry::tracing::end-span cx-6 0)
-        p-tmp-6))))
-        `)
+            normalizeScheme(`(let* ((p-2 #t) (cx-6 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-6 (if p-2 (let* ((p-4 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "dispan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7)) (let ((cx-8 (stdlib-telemetry::tracing::start-span tracer "clespan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8))))) (begin (stdlib-telemetry::tracing::end-span cx-6 0) p-tmp-6))`)
         )
     })
 
 
+    it('waterfall of pluses', () => {
+        const nodes: Node[] = [
+            {
+                id: "12",
+                type: "span",
+                position: { x: 195.61427535145788, y: 108.52261307186106 },
+                parentId: "11",
+                data: {
+                    name: "1+",
+                    kind: "span",
+                    wrappedNodeIds: ["4"],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: "11",
+                type: "span",
+                position: { x: 151.7514224811889, y: 90.84350733606811 },
+                parentId: "10",
+                data: {
+                    name: "2+",
+                    kind: "span",
+                    wrappedNodeIds: ["3", "4"],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: "10",
+                type: "span",
+                position: { x: 301.5182021420386, y: 118.55572207195874 },
+                parentId: "9",
+                data: {
+                    name: "3+",
+                    kind: "span",
+                    wrappedNodeIds: ["2", "3", "4"],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+                selected: false,
+            },
+            {
+                id: "9",
+                type: "span",
+                position: { x: 52.977307771798195, y: -40.86570527658032 },
+                data: {
+                    name: "root",
+                    kind: "span",
+                    wrappedNodeIds: ["1", "2", "3", "4", "5", "6", "7", "8"],
+                },
+                style: { width: 300, height: 200 },
+                width: 300,
+                height: 200,
+            },
+            {
+                id: "1",
+                type: "expr",
+                position: { x: 178.3608457809967, y: 67.4177385927901 },
+                data: { kind: "call", name: "+", n_args: 2, output: true },
+                width: 146,
+                height: 86,
+                selected: false,
+                positionAbsolute: { x: 231.3381535527949, y: 26.552033316209773 },
+                dragging: false,
+                parentId: "9",
+                extent: "parent",
+            },
+            {
+                id: "2",
+                type: "expr",
+                position: { x: 40, y: 40 },
+                data: { kind: "call", name: "+", n_args: 2, output: true },
+                width: 146,
+                height: 86,
+                selected: false,
+                positionAbsolute: { x: 394.4955099138368, y: 117.69001679537843 },
+                dragging: false,
+                parentId: "10",
+                extent: "parent",
+            },
+            {
+                id: "3",
+                type: "expr",
+                position: { x: 40, y: 40 },
+                data: { kind: "call", name: "+", n_args: 2, output: true },
+                width: 146,
+                height: 86,
+                selected: false,
+                positionAbsolute: { x: 546.2469323950257, y: 208.53352413144654 },
+                dragging: false,
+                parentId: "11",
+                extent: "parent",
+            },
+            {
+                id: "4",
+                type: "expr",
+                position: { x: 40, y: 40 },
+                data: { kind: "call", name: "+", n_args: 2, output: true },
+                width: 148,
+                height: 88,
+                selected: true,
+                positionAbsolute: { x: 741.8612077464836, y: 317.05613720330757 },
+                dragging: false,
+                parentId: "12",
+                extent: "parent",
+            },
+            {
+                id: "5",
+                type: "expr",
+                position: { x: 49.010364070060405, y: 40 },
+                data: { kind: "literal", value: "1", name: "Literal 1" },
+                width: 67,
+                height: 70,
+                selected: false,
+                positionAbsolute: { x: 101.9876718418586, y: -0.8657052765803215 },
+                dragging: false,
+                parentId: "9",
+                extent: "parent",
+            },
+            {
+                id: "6",
+                type: "expr",
+                position: { x: 46.03011452431258, y: 118.1314873579285 },
+                data: { kind: "literal", value: "2", name: "Literal 2" },
+                width: 67,
+                height: 70,
+                selected: false,
+                positionAbsolute: { x: 99.00742229611078, y: 77.26578208134819 },
+                dragging: false,
+                parentId: "9",
+                extent: "parent",
+            },
+            {
+                id: "7",
+                type: "expr",
+                position: { x: 42.94982365651097, y: 244.69192615097202 },
+                data: { kind: "literal", value: "3", name: "Literal 3" },
+                width: 67,
+                height: 70,
+                selected: false,
+                positionAbsolute: { x: 95.92713142830917, y: 203.8262208743917 },
+                dragging: false,
+                parentId: "9",
+                extent: "parent",
+            },
+            {
+                id: "8",
+                type: "expr",
+                position: { x: 40, y: 355.4217243401121 },
+                data: { kind: "literal", value: "4", name: "Literal 4" },
+                width: 67,
+                height: 70,
+                selected: false,
+                positionAbsolute: { x: 92.9773077717982, y: 314.5560190635318 },
+                dragging: false,
+                parentId: "9",
+                extent: "parent",
+            },
+        ]
+
+        const edges: Edge[] = [
+            {
+                source: "5",
+                sourceHandle: "value",
+                target: "1",
+                targetHandle: "arg-0",
+                data: { kind: "data" },
+                id: "reactflow__edge-5value-1arg-0",
+                selected: false,
+            },
+            {
+                source: "6",
+                sourceHandle: "value",
+                target: "1",
+                targetHandle: "arg-1",
+                data: { kind: "data" },
+                id: "reactflow__edge-6value-1arg-1",
+                selected: false,
+            },
+            {
+                source: "1",
+                sourceHandle: "value",
+                target: "2",
+                targetHandle: "arg-0",
+                data: { kind: "data" },
+                id: "reactflow__edge-1value-2arg-0",
+                selected: false,
+            },
+            {
+                source: "7",
+                sourceHandle: "value",
+                target: "2",
+                targetHandle: "arg-1",
+                data: { kind: "data" },
+                id: "reactflow__edge-7value-2arg-1",
+                selected: false,
+            },
+            {
+                source: "2",
+                sourceHandle: "value",
+                target: "3",
+                targetHandle: "arg-0",
+                data: { kind: "data" },
+                id: "reactflow__edge-2value-3arg-0",
+                selected: false,
+            },
+            {
+                source: "8",
+                sourceHandle: "value",
+                target: "3",
+                targetHandle: "arg-1",
+                data: { kind: "data" },
+                id: "reactflow__edge-8value-3arg-1",
+                selected: false,
+            },
+            {
+                source: "3",
+                sourceHandle: "value",
+                target: "4",
+                targetHandle: "arg-0",
+                data: { kind: "data" },
+                id: "reactflow__edge-3value-4arg-0",
+                selected: true,
+            },
+            {
+                source: "2",
+                sourceHandle: "value",
+                target: "4",
+                targetHandle: "arg-1",
+                data: { kind: "data" },
+                id: "reactflow__edge-2value-4arg-1",
+                selected: true,
+            },
+        ]
+
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`(let ((p-8 4)
+      (p-7 3)
+      (p-6 2)
+      (p-5 1)
+      (cx-9 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))
+      (p-tmp-9 (let* ((p-1 (+ p-5 p-6))
+            (cx-10 (stdlib-telemetry::tracing::start-span tracer "3+" (option::stdlib-telemetry_context::some cx-9) (option::list::stdlib-telemetry_attribute::none) 0))
+            (p-tmp-10 (let* ((p-2 (+ p-1 p-7))
+                  (cx-11 (stdlib-telemetry::tracing::start-span tracer "2+" (option::stdlib-telemetry_context::some cx-10) (option::list::stdlib-telemetry_attribute::none) 0))
+                  (p-tmp-11 (let* ((p-3 (+ p-2 p-8))
+                        (cx-12 (stdlib-telemetry::tracing::start-span tracer "1+" (option::stdlib-telemetry_context::some cx-11) (option::list::stdlib-telemetry_attribute::none) 0))
+                        (p-tmp-12 (+ p-3 p-2))) (begin (stdlib-telemetry::tracing::end-span cx-12 0)
+                        p-tmp-12)))) (begin (stdlib-telemetry::tracing::end-span cx-11 0)
+                  p-tmp-11)))) (begin (stdlib-telemetry::tracing::end-span cx-10 0)
+            p-tmp-10))))
+    (begin (stdlib-telemetry::tracing::end-span cx-9 0)
+      p-tmp-9))`)
+        )
+    })
 
 })
