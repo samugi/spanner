@@ -934,34 +934,28 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
         return currExpr;
     }
 
-    let spanIds = currExpr.spanIds ? currExpr.spanIds : null;
-    let spanNodes = spanIds ? spanNodesToUse.filter(n => spanIds.includes(n.id)) : null;
+    // let spanIds = currExpr.spanIds ? currExpr.spanIds : null;
+    // let spanNodes = spanIds ? spanNodesToUse.filter(n => spanIds.includes(n.id)) : null;
     let activeSpanId = currExpr.activeSpanId ? currExpr.activeSpanId : null;
     let activeSpanNode = activeSpanId ? allSpanNodes.find(n => n.id === activeSpanId) : null;
     let sortedSpanNodes: Node[] = [];
 
-    if (spanIds && spanNodes) {
-        if (spanNodes.some(n => n.data.kind !== 'span')) {
-            throw new Error(`Span node not found for some ids: ${spanIds}`);
-        }
+    sortedSpanNodes = spanNodesToUse.sort((a, b) => {
+        const aParentId = a.parentId;
+        const bParentId = b.parentId;
 
-        sortedSpanNodes = spanNodes.sort((a, b) => {
-            const aParentId = a.parentId;
-            const bParentId = b.parentId;
+        // If a is parent of b, a should come before b
+        if (a.id === bParentId) return -1;
+        // If b is parent of a, b should come before a
+        if (b.id === aParentId) return 1;
 
-            // If a is parent of b, a should come before b
-            if (a.id === bParentId) return -1;
-            // If b is parent of a, b should come before a
-            if (b.id === aParentId) return 1;
+        // If a has no parent (root), it comes first
+        if (!aParentId && bParentId) return -1;
+        // If b has no parent (root), it comes first
+        if (aParentId && !bParentId) return 1;
 
-            // If a has no parent (root), it comes first
-            if (!aParentId && bParentId) return -1;
-            // If b has no parent (root), it comes first
-            if (aParentId && !bParentId) return 1;
-
-            return 0;
-        });
-    }
+        return 0;
+    });
 
     switch (currExpr.type) {
         case 'call': {
