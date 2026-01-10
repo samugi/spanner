@@ -934,10 +934,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
         return currExpr;
     }
 
-    // let spanIds = currExpr.spanIds ? currExpr.spanIds : null;
-    // let spanNodes = spanIds ? spanNodesToUse.filter(n => spanIds.includes(n.id)) : null;
-    let activeSpanId = currExpr.activeSpanId ? currExpr.activeSpanId : null;
-    let activeSpanNode = activeSpanId ? allSpanNodes.find(n => n.id === activeSpanId) : null;
+    let activeSpanNode = currExpr.activeSpanId ? allSpanNodes.find(n => n.id === currExpr.activeSpanId) : null;
     let sortedSpanNodes: Node[] = [];
 
     sortedSpanNodes = spanNodesToUse.sort((a, b) => {
@@ -1032,7 +1029,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                         } as Call;
 
 
-                        wrappedArgsExpr = wrapInSpans(wrappedArgsExpr, [spanNode], [spanNode], activeSpanNode ? activeSpanNode : null);
+                        wrappedArgsExpr = wrapInSpans(wrappedArgsExpr, [spanNode], [spanNode], spanNode);
                         argsExprs.push(wrappedArgsExpr);
 
                         // process args after last usage
@@ -1090,6 +1087,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                     spanNodesToEnd.push(spanNode);
                 }
             }
+
 
             activeSpanNode = activeSpanNode ? activeSpanNode : (spanNodesToStart.length > 0 ? spanNodesToStart[0] : null);
 

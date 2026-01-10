@@ -1521,4 +1521,454 @@ describe('generateProgram: spans + dataflow', () => {
         )
     })
 
+
+    it('if with spans on the if and on the then', () => {
+        const nodes: Node[] = [
+            {
+                "id": "123",
+                "type": "span",
+                "position": {
+                    "x": 0,
+                    "y": 430.98855687191156
+                },
+                "parentId": "122",
+                "data": {
+                    "name": "left",
+                    "kind": "span",
+                    "wrappedNodeIds": [
+                        "105",
+                        "108",
+                        "110",
+                        "111",
+                        "114",
+                        "115",
+                        "117",
+                        "119"
+                    ]
+                },
+                "style": {
+                    "width": 300,
+                    "height": 200
+                },
+                "width": 300,
+                "height": 200
+            },
+            {
+                "id": "122",
+                "type": "span",
+                "position": {
+                    "x": 947.5802312277806,
+                    "y": 569.2729669858904
+                },
+                "data": {
+                    "name": "root",
+                    "kind": "span",
+                    "wrappedNodeIds": [
+                        "104",
+                        "105",
+                        "106",
+                        "107",
+                        "108",
+                        "109",
+                        "110",
+                        "111",
+                        "112",
+                        "113",
+                        "114",
+                        "115",
+                        "116",
+                        "117",
+                        "118",
+                        "119",
+                        "120"
+                    ]
+                },
+                "style": {
+                    "width": 300,
+                    "height": 200
+                },
+                "width": 300,
+                "height": 200,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 947.5802312277806,
+                    "y": 569.2729669858904
+                },
+                "dragging": false
+            },
+            {
+                "id": "104",
+                "position": {
+                    "x": 655.884769402838,
+                    "y": 40
+                },
+                "data": {
+                    "kind": "if",
+                    "name": "if"
+                },
+                "type": "if",
+                "width": 146,
+                "height": 132,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1635.4650006306185,
+                    "y": 567.2729669858904
+                },
+                "dragging": false,
+                "parentId": "122",
+                "extent": "parent"
+            },
+            {
+                "id": "105",
+                "position": {
+                    "x": 395.78032119554064,
+                    "y": 40
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::response::clear",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 269,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1375.3605524233212,
+                    "y": 998.261523857802
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "108",
+                "position": {
+                    "x": 350.4789881237034,
+                    "y": 134.32933600504714
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::response::set-header",
+                    "n_args": 2,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 314,
+                "height": 86,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1330.059219351484,
+                    "y": 1092.5908598628491
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "110",
+                "position": {
+                    "x": 348.1680908463113,
+                    "y": 244.7881113663144
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::response::set-header",
+                    "n_args": 2,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 314,
+                "height": 86,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1327.748322074092,
+                    "y": 1203.0496352241164
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "111",
+                "position": {
+                    "x": 369.16681733510586,
+                    "y": 369.61997064593345
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::send-response",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 267,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1348.7470485628864,
+                    "y": 1327.8814945037354
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "114",
+                "position": {
+                    "x": 139.0480775079552,
+                    "y": 120.14065549463305
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "\":status\"",
+                    "name": "Literal \":status\""
+                },
+                "type": "expr",
+                "width": 86,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1118.6283087357358,
+                    "y": 1078.402179352435
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "115",
+                "position": {
+                    "x": 52.61589156257696,
+                    "y": 161.78131529147447
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "\"200\"",
+                    "name": "Literal \"200\""
+                },
+                "type": "expr",
+                "width": 67,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1032.1961227903575,
+                    "y": 1120.0428391492765
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "117",
+                "position": {
+                    "x": 40,
+                    "y": 250.61798073282114
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "\"X-Custom\"",
+                    "name": "Literal \"X-Custom\""
+                },
+                "type": "expr",
+                "width": 110,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1019.5802312277806,
+                    "y": 1208.8795045906231
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "119",
+                "position": {
+                    "x": 100.33154171427395,
+                    "y": 323.94000921749137
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "\"SNI Matched\"",
+                    "name": "Literal \"SNI Matched\""
+                },
+                "type": "expr",
+                "width": 130,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1079.9117729420545,
+                    "y": 1282.2015330752934
+                },
+                "dragging": false,
+                "parentId": "123",
+                "extent": "parent"
+            },
+            {
+                "id": "125",
+                "position": {
+                    "x": 1371.8788635545159,
+                    "y": 464.2510397582905
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "1",
+                    "name": "Literal 1"
+                },
+                "type": "expr",
+                "width": 67,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1371.8788635545159,
+                    "y": 464.2510397582905
+                },
+                "dragging": false
+            },
+            {
+                "id": "126",
+                "position": {
+                    "x": 1669.1060805551483,
+                    "y": 929.3446596815037
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "http::proxy-http::response::clear",
+                    "n_args": 0,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 269,
+                "height": 48,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 1669.1060805551483,
+                    "y": 929.3446596815037
+                },
+                "dragging": false
+            }
+        ];
+
+        const edges: Edge[] = [
+            {
+                "source": "105",
+                "sourceHandle": "flow-out",
+                "target": "108",
+                "targetHandle": "flow-in",
+                "data": {
+                    "kind": "flow"
+                },
+                "id": "reactflow__edge-105flow-out-108flow-in",
+                "selected": false
+            },
+            {
+                "source": "108",
+                "sourceHandle": "flow-out",
+                "target": "110",
+                "targetHandle": "flow-in",
+                "data": {
+                    "kind": "flow"
+                },
+                "id": "reactflow__edge-108flow-out-110flow-in",
+                "selected": false
+            },
+            {
+                "source": "110",
+                "sourceHandle": "flow-out",
+                "target": "111",
+                "targetHandle": "flow-in",
+                "data": {
+                    "kind": "flow"
+                },
+                "id": "reactflow__edge-110flow-out-111flow-in",
+                "selected": false
+            },
+            {
+                "source": "105",
+                "sourceHandle": "flow-out",
+                "target": "104",
+                "targetHandle": "then",
+                "data": {
+                    "kind": "control"
+                },
+                "id": "reactflow__edge-105flow-out-104then",
+                "selected": false
+            },
+            {
+                "source": "114",
+                "sourceHandle": "value",
+                "target": "108",
+                "targetHandle": "arg-0",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-114value-108arg-0",
+                "selected": false
+            },
+            {
+                "source": "115",
+                "sourceHandle": "value",
+                "target": "108",
+                "targetHandle": "arg-1",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-115value-108arg-1",
+                "selected": false
+            },
+            {
+                "source": "117",
+                "sourceHandle": "value",
+                "target": "110",
+                "targetHandle": "arg-0",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-117value-110arg-0",
+                "selected": false
+            },
+            {
+                "source": "119",
+                "sourceHandle": "value",
+                "target": "110",
+                "targetHandle": "arg-1",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-119value-110arg-1",
+                "selected": false
+            },
+            {
+                "source": "125",
+                "sourceHandle": "value",
+                "target": "104",
+                "targetHandle": "cond",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-125value-104cond"
+            },
+            {
+                "source": "126",
+                "sourceHandle": "flow-out",
+                "target": "104",
+                "targetHandle": "else",
+                "data": {
+                    "kind": "control",
+                    "branch": "else"
+                },
+                "id": "reactflow__edge-126flow-out-104else"
+            }
+        ];
+
+
+        const program = generateProgram(nodes, edges)
+
+        expect(normalizeScheme(program)).toBe(
+            normalizeScheme(`(let ((cx-122 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 1 (begin (let ((cx-123 (stdlib-telemetry::tracing::start-span tracer "left" (option::stdlib-telemetry_context::some cx-122) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-123 (begin (http::proxy-http::response::clear) (let ((p-115 "200") (p-114 ":status")) (http::proxy-http::response::set-header p-114 p-115)) (let ((p-119 "SNI Matched") (p-117 "X-Custom")) (http::proxy-http::response::set-header p-117 p-119)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-123 0) p-tmp-123))) (http::proxy-http::response::clear)))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
+        )
+    })
+
 })
