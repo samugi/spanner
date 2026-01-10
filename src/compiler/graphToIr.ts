@@ -5,7 +5,7 @@
 
 import type { Node, Edge } from 'reactflow'
 import { type Expression, type Let, type Call, type Symbol, isExprObj, isLetLike, type LetStar, type VarRef, type EndSpan, type StartSpan, isTraceableExpr } from './types'
-import _, { find } from 'lodash';
+import _, { find, first, last } from 'lodash';
 import { newCxSymbol, newParamSymbol } from './spec';
 import { belongsToControlFlow } from '../utils';
 
@@ -201,16 +201,16 @@ function replaceExprInPrevious(previous: Expression, oldSym: Symbol, newExpr: Ex
             });
 
             const newBody = replaceExprInPrevious(previous.body, oldSym, newExpr);
-            let spanIds = previous.spanIds || [];
-            if (isTraceableExpr(newExpr) && newExpr.spanIds) {
-                spanIds = [...new Set([...spanIds, ...newExpr.spanIds])];
-            }
+            // let spanIds = previous.spanIds || [];
+            // if (isTraceableExpr(newExpr) && newExpr.spanIds) {
+            //     spanIds = [...new Set([...spanIds, ...newExpr.spanIds])];
+            // }
 
             return {
                 type: previous.type,
                 bindings: newBindings,
                 body: newBody,
-                spanIds: spanIds,
+                // spanIds: spanIds,
             } as Let | LetStar;
 
         case 'var':
@@ -282,13 +282,13 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                     return replaceExprInPrevious(previous, nodeOutSymbol, node.data.value);
                 }
 
-                let spanIds = [];
-                if (isTraceableExpr(node.data.value) && node.data.value.spanIds) {
-                    spanIds = node.data.value.spanIds;
-                }
-                if (isTraceableExpr(previous) && previous.spanIds) {
-                    spanIds = [...new Set([...spanIds, ...previous.spanIds])];
-                }
+                // let spanIds = [];
+                // if (isTraceableExpr(node.data.value) && node.data.value.spanIds) {
+                //     spanIds = node.data.value.spanIds;
+                // }
+                // if (isTraceableExpr(previous) && previous.spanIds) {
+                //     spanIds = [...new Set([...spanIds, ...previous.spanIds])];
+                // }
 
                 // If we can't expand in previous, we need to create a new outer scope
                 const squashed =
@@ -300,7 +300,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                         type: 'let',
                         bindings: [{ sym: nodeOutSymbol, expr: node.data.value }],
                         body: previous,
-                        spanIds: spanIds,
+                        // spanIds: spanIds,
                     } as Let;
                 return squashed;
             }
@@ -497,13 +497,13 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 return replaceExprInPrevious(previous, nodeOutSymbol, callExpr);
             }
 
-            let spanIds: string[] = [];
-            if (isTraceableExpr(callExpr) && callExpr.spanIds) {
-                spanIds = callExpr.spanIds;
-            }
-            if (isTraceableExpr(previous) && previous.spanIds) {
-                spanIds = [...new Set([...spanIds, ...previous.spanIds])];
-            }
+            // let spanIds: string[] = [];
+            // if (isTraceableExpr(callExpr) && callExpr.spanIds) {
+            //     spanIds = callExpr.spanIds;
+            // }
+            // if (isTraceableExpr(previous) && previous.spanIds) {
+            //     spanIds = [...new Set([...spanIds, ...previous.spanIds])];
+            // }
 
             // output will be reused: create a let scope
             let binding = {
@@ -519,7 +519,7 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
                 type: 'let',
                 bindings: [binding],
                 body: previous,
-                spanIds: spanIds,
+                // spanIds: spanIds,
             } as Expression;
             // }
 
@@ -960,6 +960,103 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
     switch (currExpr.type) {
         case 'call': {
             let newExpr: Expression = currExpr;
+
+            // if call is a begin, we need to process its args differently
+            // because they are sequential expressions and not nested.
+            // A span may start in one arg and end in another, in which case
+            // it has to wrap args from the first to the last
+            if (currExpr.name === 'begin') {
+                let argsExprs: Expression[] = [];
+
+                if (sortedSpanNodes.length === 0) {
+                    // no spans to wrap, just process all args normally
+                    for (const arg of currExpr.args) {
+                        const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes);
+                        argsExprs.push(tArg);
+                    }
+
+                    newExpr = {
+                        ...newExpr,
+                        args: argsExprs
+                    } as Call;
+
+                    return newExpr;
+                }
+
+                // for each span, check if it has first and last usage in different args
+                for (const spanNode of sortedSpanNodes) {
+                    const firstUsage = findFirstUsageSpan(fullExpr, spanNode.id);
+                    const lastUsage = findLastUsageSpan(fullExpr, spanNode.id);
+                    const otherSpanNodes = spanNodesToUse.filter(sn => sn.id !== spanNode.id);
+                    // if both first and last usage are in this begin's args (but different ones)
+                    // we need to wrap from first to last
+                    if (firstUsage && lastUsage) {
+                        const firstArgIndex = currExpr.args.findIndex(a => _.isEqual(a, firstUsage));
+                        const lastArgIndex = currExpr.args.findIndex(a => _.isEqual(a, lastUsage));
+
+                        if (firstArgIndex === -1 && lastArgIndex === -1) {
+                            // span not used in this begin's args, continue to next span
+                            continue;
+                        }
+
+                        if ((firstArgIndex === -1 && lastArgIndex !== -1) ||
+                            (lastArgIndex !== -1 && firstArgIndex === -1)) {
+                            throw new Error(`Inconsistent span usage detection for span ${spanNode.id} in begin call.`);
+                        }
+
+                        if (firstArgIndex > lastArgIndex) {
+                            throw new Error(`First usage comes after last usage for span ${spanNode.id} in begin call.`);
+                        }
+
+                        if (firstArgIndex === lastArgIndex) {
+                            // span used only in one arg, process that arg normally with all spans
+                            const tArg = generateTir(currExpr.args[firstArgIndex], fullExpr, spanNodesToUse, allSpanNodes);
+                            argsExprs.push(tArg);
+                            continue;
+                        }
+
+                        // process args before first usage
+                        for (let i = 0; i < firstArgIndex; i++) {
+                            const tArg = generateTir(currExpr.args[i], fullExpr, spanNodesToUse, allSpanNodes);
+                            argsExprs.push(tArg);
+                        }
+
+                        // process args from first to last usage with span wrapping
+                        const argsToWrap: Expression[] = [];
+                        for (let i = firstArgIndex; i <= lastArgIndex; i++) {
+                            const tArg = generateTir(currExpr.args[i], fullExpr, otherSpanNodes, allSpanNodes);
+                            argsToWrap.push(tArg);
+                        }
+                        let wrappedArgsExpr: Expression = {
+                            type: 'call',
+                            name: 'begin',
+                            output: false,
+                            args: argsToWrap,
+                            spanIds: [],
+                            activeSpanId: ""
+                        } as Call;
+
+                        wrappedArgsExpr = wrapInSpans(wrappedArgsExpr, [spanNode], [spanNode], activeSpanNode ? activeSpanNode : null);
+                        argsExprs.push(wrappedArgsExpr);
+
+                        // process args after last usage
+                        for (let i = lastArgIndex + 1; i < currExpr.args.length; i++) {
+                            const tArg = generateTir(currExpr.args[i], fullExpr, spanNodesToUse, allSpanNodes);
+                            argsExprs.push(tArg);
+                        }
+
+                    }
+                }
+
+                newExpr = {
+                    ...newExpr,
+                    args: argsExprs
+                } as Call;
+
+                return newExpr;
+            }
+
+            // for non-begin calls, we just recurse into the arguments
 
             for (const arg of currExpr.args) {
                 const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes);

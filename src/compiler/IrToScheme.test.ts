@@ -88,90 +88,208 @@ describe('generateProgram: spans + dataflow', () => {
     it('adds two literals, then displays the result, with separate spans', () => {
         const nodes: Node[] = [
             {
-                id: 'lit1',
-                type: 'expr',
-                position: { x: 0, y: 0 },
-                data: { kind: 'literal', value: 1 },
+                "id": "8",
+                "type": "span",
+                "position": {
+                    "x": 205.2041208669068,
+                    "y": 211.67968267435407
+                },
+                "parentId": "7",
+                "data": {
+                    "name": "display-span",
+                    "kind": "span",
+                    "wrappedNodeIds": [
+                        "3"
+                    ]
+                },
+                "style": {
+                    "width": 300,
+                    "height": 200
+                },
+                "width": 300,
+                "height": 200
             },
             {
-                id: 'lit2',
-                type: 'expr',
-                position: { x: 0, y: 0 },
-                data: { kind: 'literal', value: 2 },
+                "id": "7",
+                "type": "span",
+                "position": {
+                    "x": 185.75567454910777,
+                    "y": -152.6007271270101
+                },
+                "data": {
+                    "name": "sum-span",
+                    "kind": "span",
+                    "wrappedNodeIds": [
+                        "3",
+                        "4"
+                    ]
+                },
+                "style": {
+                    "width": 300,
+                    "height": 200
+                },
+                "width": 300,
+                "height": 200
             },
             {
-                id: 'sum',
-                type: 'expr',
-                position: { x: 0, y: 0 },
-                data: { kind: 'call', name: '+', n_args: 2 },
-                parentId: 'span-sum',
+                "id": "2",
+                "position": {
+                    "x": 13.32009804778879,
+                    "y": 184.47221506525497
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "display",
+                    "n_args": 1,
+                    "output": false
+                },
+                "type": "expr",
+                "width": 146,
+                "height": 67,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 13.32009804778879,
+                    "y": 184.47221506525497
+                },
+                "dragging": false
             },
             {
-                id: 'display',
-                type: 'expr',
-                position: { x: 0, y: 0 },
-                data: { kind: 'call', name: 'display', n_args: 1 },
-                parentId: 'span-display',
+                "id": "3",
+                "position": {
+                    "x": 40,
+                    "y": 40
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "display",
+                    "n_args": 1,
+                    "output": false
+                },
+                "type": "expr",
+                "width": 146,
+                "height": 67,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 430.9597954160146,
+                    "y": 99.07895554734398
+                },
+                "dragging": false,
+                "parentId": "8",
+                "extent": "parent"
             },
             {
-                id: 'display2',
-                type: 'expr',
-                position: { x: 0, y: 0 },
-                data: { kind: 'call', name: 'display', n_args: 1 },
+                "id": "4",
+                "position": {
+                    "x": 40,
+                    "y": 39.999999999999986
+                },
+                "data": {
+                    "kind": "call",
+                    "name": "+",
+                    "n_args": 2,
+                    "output": true
+                },
+                "type": "expr",
+                "width": 146,
+                "height": 86,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": 225.75567454910777,
+                    "y": -112.6007271270101
+                },
+                "dragging": false,
+                "parentId": "7",
+                "extent": "parent"
             },
             {
-                id: 'span-sum',
-                type: 'span',
-                position: { x: 0, y: 0 },
-                data: { name: 'sum-span', kind: 'span', wrappedNodeIds: ['sum'] },
+                "id": "5",
+                "position": {
+                    "x": -143.51643314183104,
+                    "y": -40.33829116202533
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "1",
+                    "name": "Literal 1"
+                },
+                "type": "expr",
+                "width": 67,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": -143.51643314183104,
+                    "y": -40.33829116202533
+                },
+                "dragging": false
             },
             {
-                id: 'span-display',
-                type: 'span',
-                position: { x: 0, y: 0 },
-                data: { name: 'display-span', kind: 'span', wrappedNodeIds: ['display'] },
-                parentId: 'span-sum',
+                "id": "6",
+                "position": {
+                    "x": -13.69524367505511,
+                    "y": -123.90447391680122
+                },
+                "data": {
+                    "kind": "literal",
+                    "value": "2",
+                    "name": "Literal 2"
+                },
+                "type": "expr",
+                "width": 67,
+                "height": 70,
+                "selected": false,
+                "positionAbsolute": {
+                    "x": -13.69524367505511,
+                    "y": -123.90447391680122
+                },
+                "dragging": false
             }
-        ]
+        ];
 
         const edges: Edge[] = [
-            // literals -> sum (data)
             {
-                id: 'e1',
-                source: 'lit1',
-                target: 'sum',
-                sourceHandle: 'value',
-                targetHandle: 'arg-0',
-                data: { kind: 'data' },
+                "source": "4",
+                "sourceHandle": "value",
+                "target": "3",
+                "targetHandle": "arg-0",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-4value-3arg-0",
+                "selected": false
             },
             {
-                id: 'e2',
-                source: 'lit2',
-                target: 'sum',
-                sourceHandle: 'value',
-                targetHandle: 'arg-1',
-                data: { kind: 'data' },
+                "source": "6",
+                "sourceHandle": "value",
+                "target": "4",
+                "targetHandle": "arg-0",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-6value-4arg-0",
+                "selected": false
             },
-
-            // sum -> display (data)
             {
-                id: 'e3',
-                source: 'sum',
-                target: 'display',
-                sourceHandle: 'value',
-                targetHandle: 'arg-0',
-                data: { kind: 'data' },
+                "source": "5",
+                "sourceHandle": "value",
+                "target": "4",
+                "targetHandle": "arg-1",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-5value-4arg-1",
+                "selected": false
             },
-            // literals -> display2 (data)
             {
-                id: 'e5',
-                source: 'lit2',
-                target: 'display2',
-                sourceHandle: 'value',
-                targetHandle: 'arg-0',
-                data: { kind: 'data' },
-            },
-        ]
+                "source": "5",
+                "sourceHandle": "value",
+                "target": "2",
+                "targetHandle": "arg-0",
+                "data": {
+                    "kind": "data"
+                },
+                "id": "reactflow__edge-5value-2arg-0"
+            }
+        ];
 
         const program = generateProgram(
             nodes,
@@ -179,7 +297,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let ((p-lit2 2)) (begin (display p-lit2) (let ((p-sum (let ((cx-span-sum (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-sum (+ 1 p-lit2))) (begin (stdlib-telemetry::tracing::end-span cx-span-sum 0) p-tmp-span-sum))))) (let ((cx-span-display (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-span-sum) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-display (display p-sum))) (begin (stdlib-telemetry::tracing::end-span cx-span-display 0) p-tmp-span-display))))))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-5 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (let ((p-4 (+ 2 p-5))) (begin (let ((cx-8 (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-7) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8)))))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7))`))
     })
 
     it('computes if condition correctly', () => {
@@ -429,7 +547,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(if (> 3 1) (let ((p-5 "foo")) (let ((cx-span-11 (stdlib-telemetry::tracing::start-span tracer "sda" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-span-11 (display p-5))) (begin (stdlib-telemetry::tracing::end-span cx-span-11 0) p-tmp-span-11)))) (display "bar"))`)
+            normalizeScheme(`(if (> 3 1) (let* ((p-5 "foo") (cx-span-11 (stdlib-telemetry::tracing::start-span tracer "sda" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-span-11 (display p-5))) (begin (stdlib-telemetry::tracing::end-span cx-span-11 0) p-tmp-span-11)) (display "bar"))`)
         )
     })
 
@@ -678,7 +796,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(begin (let ((cx-63 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (cx-64 (stdlib-telemetry::tracing::start-span tracer "cl" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-64 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-64 0) p-tmp-64))) (let ((cx-65 (stdlib-telemetry::tracing::start-span tracer "sha" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-65 (http::proxy-http::response::set-header ":status" "404"))) (begin (stdlib-telemetry::tracing::end-span cx-65 0) p-tmp-65))) (let ((cx-66 (stdlib-telemetry::tracing::start-span tracer "shb" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0))) (let ((p-tmp-66 (http::proxy-http::response::set-header "X-Custom" "SNI Not Matched"))) (begin (stdlib-telemetry::tracing::end-span cx-66 0) p-tmp-66))) (let ((p-tmp-63 (http::proxy-http::send-response))) (begin (stdlib-telemetry::tracing::end-span cx-63 0) p-tmp-63)))`)
+            normalizeScheme(`(begin (let ((cx-63 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-63 (begin (let ((cx-64 (stdlib-telemetry::tracing::start-span tracer "cl" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-64 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-64 0) p-tmp-64)) (let ((cx-65 (stdlib-telemetry::tracing::start-span tracer "sha" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-65 (http::proxy-http::response::set-header ":status" "404"))) (begin (stdlib-telemetry::tracing::end-span cx-65 0) p-tmp-65)) (let ((cx-66 (stdlib-telemetry::tracing::start-span tracer "shb" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-66 (http::proxy-http::response::set-header "X-Custom" "SNI Not Matched"))) (begin (stdlib-telemetry::tracing::end-span cx-66 0) p-tmp-66)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-63 0) p-tmp-63)))`)
         )
     })
 
