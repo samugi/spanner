@@ -8,7 +8,7 @@ function hasTracing(nodes: Node[]): boolean {
 
 export function generateProgram(nodes: Node[], edges: Edge[]): string {
     const result = generateIrMultiFlow(nodes, edges, null, null);
-    const spannedResult = generateTir(result, result, nodes.filter(n => n.data?.kind === 'span'), nodes.filter(n => n.data?.kind === 'span'));
+    const spannedResult = generateTir(result, result, nodes.filter(n => n.data?.kind === 'span'), nodes.filter(n => n.data?.kind === 'span'), new Set<string>(), new Set<string>());
     const compressedResult = compressTir(spannedResult);
     return generateScheme(compressedResult || '');
 }

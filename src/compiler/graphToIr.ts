@@ -929,7 +929,7 @@ function wrapInSpans(expr: Expression, spanNodesToEnd: Node[], spanNodesToStart:
 // recursively finds expressions that have an active span (spanId)
 // starts every span before the first expression that uses it
 // ends every span after the last expression that uses it
-export function generateTir(currExpr: Expression, fullExpr: Expression, spanNodesToUse: Node[], allSpanNodes: Node[]): Expression {
+export function generateTir(currExpr: Expression, fullExpr: Expression, spanNodesToUse: Node[], allSpanNodes: Node[], startedSpans: Set<string>, endedSpans: Set<string>): Expression {
     if (!isExprObj(currExpr) || !isTraceableExpr(currExpr)) {
         return currExpr;
     }
@@ -971,7 +971,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                 if (sortedSpanNodes.length === 0) {
                     // no spans to wrap, just process all args normally
                     for (const arg of currExpr.args) {
-                        const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes);
+                        const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes, startedSpans, endedSpans);
                         argsExprs.push(tArg);
                     }
 
@@ -983,11 +983,17 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                     return newExpr;
                 }
 
+
                 // for each span, check if it has first and last usage in different args
                 for (const spanNode of sortedSpanNodes) {
+                    if (startedSpans.has(spanNode.id) && endedSpans.has(spanNode.id)) {
+                        // span already started and ended, skip
+                        continue;
+                    }
+
                     const firstUsage = findFirstUsageSpan(fullExpr, spanNode.id);
                     const lastUsage = findLastUsageSpan(fullExpr, spanNode.id);
-                    const otherSpanNodes = spanNodesToUse.filter(sn => sn.id !== spanNode.id);
+
                     // if both first and last usage are in this begin's args (but different ones)
                     // we need to wrap from first to last
                     if (firstUsage && lastUsage) {
@@ -1010,21 +1016,26 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
 
                         if (firstArgIndex === lastArgIndex) {
                             // span used only in one arg, process that arg normally with all spans
-                            const tArg = generateTir(currExpr.args[firstArgIndex], fullExpr, spanNodesToUse, allSpanNodes);
+                            const tArg = generateTir(currExpr.args[firstArgIndex], fullExpr, spanNodesToUse, allSpanNodes, startedSpans, endedSpans);
                             argsExprs.push(tArg);
                             continue;
                         }
 
+                        // only keep spans that have not been started and ended yet
+                        startedSpans.add(spanNode.id);
+                        endedSpans.add(spanNode.id);
+                        const otherSpanNodes = spanNodesToUse.filter(n => !startedSpans.has(n.id) || !endedSpans.has(n.id));
+
                         // process args before first usage
                         for (let i = 0; i < firstArgIndex; i++) {
-                            const tArg = generateTir(currExpr.args[i], fullExpr, spanNodesToUse, allSpanNodes);
+                            const tArg = generateTir(currExpr.args[i], fullExpr, otherSpanNodes, allSpanNodes, startedSpans, endedSpans);
                             argsExprs.push(tArg);
                         }
 
                         // process args from first to last usage with span wrapping
                         const argsToWrap: Expression[] = [];
                         for (let i = firstArgIndex; i <= lastArgIndex; i++) {
-                            const tArg = generateTir(currExpr.args[i], fullExpr, otherSpanNodes, allSpanNodes);
+                            const tArg = generateTir(currExpr.args[i], fullExpr, otherSpanNodes, allSpanNodes, startedSpans, endedSpans);
                             argsToWrap.push(tArg);
                         }
                         let wrappedArgsExpr: Expression = {
@@ -1036,12 +1047,13 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
                             activeSpanId: ""
                         } as Call;
 
+
                         wrappedArgsExpr = wrapInSpans(wrappedArgsExpr, [spanNode], [spanNode], activeSpanNode ? activeSpanNode : null);
                         argsExprs.push(wrappedArgsExpr);
 
                         // process args after last usage
                         for (let i = lastArgIndex + 1; i < currExpr.args.length; i++) {
-                            const tArg = generateTir(currExpr.args[i], fullExpr, spanNodesToUse, allSpanNodes);
+                            const tArg = generateTir(currExpr.args[i], fullExpr, otherSpanNodes, allSpanNodes, startedSpans, endedSpans);
                             argsExprs.push(tArg);
                         }
 
@@ -1059,7 +1071,7 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
             // for non-begin calls, we just recurse into the arguments
 
             for (const arg of currExpr.args) {
-                const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes);
+                const tArg = generateTir(arg, fullExpr, spanNodesToUse, allSpanNodes, startedSpans, endedSpans);
                 newExpr = {
                     ...newExpr,
                     args: newExpr.args.map(a => _.isEqual(a, arg) ? tArg : a)
@@ -1088,6 +1100,13 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
             }
 
             activeSpanNode = activeSpanNode ? activeSpanNode : (spanNodesToStart.length > 0 ? spanNodesToStart[0] : null);
+
+            for (const spanNode of spanNodesToStart) {
+                startedSpans.add(spanNode.id);
+            }
+            for (const spanNode of spanNodesToEnd) {
+                endedSpans.add(spanNode.id);
+            }
 
             return wrapInSpans(newExpr, spanNodesToEnd, spanNodesToStart, activeSpanNode);
         }
@@ -1135,13 +1154,13 @@ export function generateTir(currExpr: Expression, fullExpr: Expression, spanNode
 
             let newBody = currExpr.body;
             if (spanNodesToProcessBody.length > 0) {
-                newBody = generateTir(currExpr.body, fullExpr, spanNodesToProcessBody, allSpanNodes);
+                newBody = generateTir(currExpr.body, fullExpr, spanNodesToProcessBody, allSpanNodes, startedSpans, endedSpans);
             }
 
             const newBindings = currExpr.bindings.map(b => {
                 return {
                     sym: b.sym,
-                    expr: generateTir(b.expr, fullExpr, spanNodesToProcessBindings, allSpanNodes)
+                    expr: generateTir(b.expr, fullExpr, spanNodesToProcessBindings, allSpanNodes, startedSpans, endedSpans)
                 };
             });
 
