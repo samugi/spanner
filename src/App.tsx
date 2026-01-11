@@ -216,6 +216,9 @@ function App() {
         panOnDrag={false}
         panOnScroll={false}
 
+        minZoom={0.1}  // Default is 0.5, lower allows more zoom out
+        maxZoom={2}    // Default is 2, adjust if you want more zoom in
+
         fitView
       >
         <Background />
