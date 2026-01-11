@@ -43,12 +43,22 @@ function App() {
   }, [nodes])
 
   const deleteSelectedNodes = useCallback(() => {
-    setNodes(ns => {
-      const selectedIds = new Set(ns.filter(n => n.selected).map(n => n.id))
-      setEdges(es => es.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target)))
-      return ns.filter(n => !selectedIds.has(n.id))
-    })
-  }, [setNodes, setEdges])
+    // First, collect selected IDs from current nodes
+    const selectedIds = new Set(nodes.filter(n => n.selected).map(n => n.id))
+
+    // Update nodes: unset parentId for children of deleted spans, then filter out selected
+    setNodes(ns =>
+      ns.map(n => {
+        if (n.parentId && selectedIds.has(n.parentId)) {
+          return { ...n, parentId: undefined }
+        }
+        return n
+      }).filter(n => !selectedIds.has(n.id))
+    )
+
+    // Update edges: remove edges connected to deleted nodes
+    setEdges(es => es.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target)))
+  }, [nodes, setNodes, setEdges])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
