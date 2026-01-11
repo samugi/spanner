@@ -297,7 +297,7 @@ describe('generateProgram: spans + dataflow', () => {
         )
 
         // ---- Assertions ----
-        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-5 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (let ((p-4 (+ 2 p-5))) (begin (let ((cx-8 (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-7) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8)))))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7))`))
+        expect(normalizeScheme(program)).toBe(normalizeScheme(`(let* ((p-5 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "sum-span" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (let* ((p-4 (+ 2 p-5))) (begin (let* ((cx-8 (stdlib-telemetry::tracing::start-span tracer "display-span" (option::stdlib-telemetry_context::some cx-7) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8)))))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7))`))
     })
 
     it('computes if condition correctly', () => {
@@ -664,7 +664,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let ((p-13 2)) (cond ((= (* 1 p-13) p-13) (display 6565)) (false (display (* 1 2)))))`)
+            normalizeScheme(`(let* ((p-13 2)) (cond ((= (* 1 p-13) p-13) (display 6565)) (false (display (* 1 2)))))`)
         )
     })
 
@@ -796,7 +796,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(begin (let ((cx-63 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-63 (begin (let ((cx-64 (stdlib-telemetry::tracing::start-span tracer "cl" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-64 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-64 0) p-tmp-64)) (let ((cx-65 (stdlib-telemetry::tracing::start-span tracer "sha" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-65 (http::proxy-http::response::set-header ":status" "404"))) (begin (stdlib-telemetry::tracing::end-span cx-65 0) p-tmp-65)) (let ((cx-66 (stdlib-telemetry::tracing::start-span tracer "shb" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-66 (http::proxy-http::response::set-header "X-Custom" "SNI Not Matched"))) (begin (stdlib-telemetry::tracing::end-span cx-66 0) p-tmp-66)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-63 0) p-tmp-63)))`)
+            normalizeScheme(`(begin (let* ((cx-63 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-63 (begin (let* ((cx-64 (stdlib-telemetry::tracing::start-span tracer "cl" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-64 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-64 0) p-tmp-64)) (let* ((cx-65 (stdlib-telemetry::tracing::start-span tracer "sha" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-65 (http::proxy-http::response::set-header ":status" "404"))) (begin (stdlib-telemetry::tracing::end-span cx-65 0) p-tmp-65)) (let* ((cx-66 (stdlib-telemetry::tracing::start-span tracer "shb" (option::stdlib-telemetry_context::some cx-63) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-66 (http::proxy-http::response::set-header "X-Custom" "SNI Not Matched"))) (begin (stdlib-telemetry::tracing::end-span cx-66 0) p-tmp-66)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-63 0) p-tmp-63)))`)
         )
     })
 
@@ -1031,7 +1031,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let* ((p-2 #t) (cx-6 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-6 (if p-2 (let* ((p-4 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "dispan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7)) (let ((cx-8 (stdlib-telemetry::tracing::start-span tracer "clespan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8))))) (begin (stdlib-telemetry::tracing::end-span cx-6 0) p-tmp-6))`)
+            normalizeScheme(`(let* ((p-2 #t) (cx-6 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-6 (if p-2 (let* ((p-4 1) (cx-7 (stdlib-telemetry::tracing::start-span tracer "dispan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-7 (display p-4))) (begin (stdlib-telemetry::tracing::end-span cx-7 0) p-tmp-7)) (let* ((cx-8 (stdlib-telemetry::tracing::start-span tracer "clespan" (option::stdlib-telemetry_context::some cx-6) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-8 (http::proxy-http::response::clear))) (begin (stdlib-telemetry::tracing::end-span cx-8 0) p-tmp-8))))) (begin (stdlib-telemetry::tracing::end-span cx-6 0) p-tmp-6))`)
         )
     })
 
@@ -1279,23 +1279,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let ((p-8 4)
-      (p-7 3)
-      (p-6 2)
-      (p-5 1)
-      (cx-9 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0))
-      (p-tmp-9 (let* ((p-1 (+ p-5 p-6))
-            (cx-10 (stdlib-telemetry::tracing::start-span tracer "3+" (option::stdlib-telemetry_context::some cx-9) (option::list::stdlib-telemetry_attribute::none) 0))
-            (p-tmp-10 (let* ((p-2 (+ p-1 p-7))
-                  (cx-11 (stdlib-telemetry::tracing::start-span tracer "2+" (option::stdlib-telemetry_context::some cx-10) (option::list::stdlib-telemetry_attribute::none) 0))
-                  (p-tmp-11 (let* ((p-3 (+ p-2 p-8))
-                        (cx-12 (stdlib-telemetry::tracing::start-span tracer "1+" (option::stdlib-telemetry_context::some cx-11) (option::list::stdlib-telemetry_attribute::none) 0))
-                        (p-tmp-12 (+ p-3 p-2))) (begin (stdlib-telemetry::tracing::end-span cx-12 0)
-                        p-tmp-12)))) (begin (stdlib-telemetry::tracing::end-span cx-11 0)
-                  p-tmp-11)))) (begin (stdlib-telemetry::tracing::end-span cx-10 0)
-            p-tmp-10))))
-    (begin (stdlib-telemetry::tracing::end-span cx-9 0)
-      p-tmp-9))`)
+            normalizeScheme(`(let* ((p-8 4) (p-7 3) (p-6 2) (p-5 1) (cx-9 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-9 (let* ((p-1 (+ p-5 p-6)) (cx-10 (stdlib-telemetry::tracing::start-span tracer "3+" (option::stdlib-telemetry_context::some cx-9) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-10 (let* ((p-2 (+ p-1 p-7)) (cx-11 (stdlib-telemetry::tracing::start-span tracer "2+" (option::stdlib-telemetry_context::some cx-10) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-11 (let* ((p-3 (+ p-2 p-8)) (cx-12 (stdlib-telemetry::tracing::start-span tracer "1+" (option::stdlib-telemetry_context::some cx-11) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-12 (+ p-3 p-2))) (begin (stdlib-telemetry::tracing::end-span cx-12 0) p-tmp-12)))) (begin (stdlib-telemetry::tracing::end-span cx-11 0) p-tmp-11)))) (begin (stdlib-telemetry::tracing::end-span cx-10 0) p-tmp-10)))) (begin (stdlib-telemetry::tracing::end-span cx-9 0) p-tmp-9))`)
         )
     })
 
@@ -1517,7 +1501,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let ((cx-122 (stdlib-telemetry::tracing::start-span tracer "fiffo" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 21 (begin (http::proxy-http::response::clear) (http::proxy-http::send-response)) (begin (core::server::stream::get-metadata) (option::stdlib-telemetry_context::none))))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
+            normalizeScheme(`(let* ((cx-122 (stdlib-telemetry::tracing::start-span tracer "fiffo" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 21 (begin (http::proxy-http::response::clear) (http::proxy-http::send-response)) (begin (core::server::stream::get-metadata) (option::stdlib-telemetry_context::none))))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
         )
     })
 
@@ -1967,7 +1951,7 @@ describe('generateProgram: spans + dataflow', () => {
         const program = generateProgram(nodes, edges)
 
         expect(normalizeScheme(program)).toBe(
-            normalizeScheme(`(let ((cx-122 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 1 (begin (let ((cx-123 (stdlib-telemetry::tracing::start-span tracer "left" (option::stdlib-telemetry_context::some cx-122) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-123 (begin (http::proxy-http::response::clear) (let ((p-115 "200") (p-114 ":status")) (http::proxy-http::response::set-header p-114 p-115)) (let ((p-119 "SNI Matched") (p-117 "X-Custom")) (http::proxy-http::response::set-header p-117 p-119)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-123 0) p-tmp-123))) (http::proxy-http::response::clear)))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
+            normalizeScheme(`(let* ((cx-122 (stdlib-telemetry::tracing::start-span tracer "root" (option::stdlib-telemetry_context::none) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-122 (if 1 (begin (let* ((cx-123 (stdlib-telemetry::tracing::start-span tracer "left" (option::stdlib-telemetry_context::some cx-122) (option::list::stdlib-telemetry_attribute::none) 0)) (p-tmp-123 (begin (http::proxy-http::response::clear) (let* ((p-115 "200") (p-114 ":status")) (http::proxy-http::response::set-header p-114 p-115)) (let* ((p-119 "SNI Matched") (p-117 "X-Custom")) (http::proxy-http::response::set-header p-117 p-119)) (http::proxy-http::send-response)))) (begin (stdlib-telemetry::tracing::end-span cx-123 0) p-tmp-123))) (http::proxy-http::response::clear)))) (begin (stdlib-telemetry::tracing::end-span cx-122 0) p-tmp-122))`)
         )
     })
 

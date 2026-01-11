@@ -454,10 +454,25 @@ function generateIrSingleNode(node: Node, nodes: Node[], edges: Edge[], previous
             return squashBegins(previous, beginExpr);
         }
         case 'call': {
+            const argEdges = incomingData.filter(
+                e => e.targetHandle?.startsWith('arg-')
+            );
+
             // prepare the arguments to the call
             // each argument is a VarRef to the output of the incoming data nodes
-            const args: VarRef[] = incomingData
-                .map(e => ({ type: 'var', sym: newParamSymbol(`${nodes.find(n => n.id === e.source)?.id!}`) }));
+            const args: VarRef[] = argEdges
+                .map(e => {
+                    const m = e.targetHandle?.match(/^arg-(\d+)$/);
+                    if (!m) {
+                        throw new Error(`Invalid arg handle on edge ${e.id}`);
+                    }
+                    return {
+                        index: Number(m[1]),
+                        sym: newParamSymbol(e.source),
+                    };
+                })
+                .sort((a, b) => a.index - b.index)
+                .map(a => ({ type: 'var', sym: a.sym } as VarRef));
 
             // create the call expression
             let callExpr: Expression = {
