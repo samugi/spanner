@@ -60,13 +60,35 @@ function App() {
     setEdges(es => es.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target)))
   }, [nodes, setNodes, setEdges])
 
+  const deleteSelectedElements = useCallback(() => {
+    // Get selected node IDs
+    const selectedNodeIds = new Set(nodes.filter(n => n.selected).map(n => n.id))
+
+    // Update nodes: unset parentId for children of deleted spans, then filter out selected
+    setNodes(ns =>
+      ns.map(n => {
+        if (n.parentId && selectedNodeIds.has(n.parentId)) {
+          return { ...n, parentId: undefined }
+        }
+        return n
+      }).filter(n => !selectedNodeIds.has(n.id))
+    )
+
+    // Update edges: remove selected edges AND edges connected to deleted nodes
+    setEdges(es => es.filter(e =>
+      !selectedNodeIds.has(e.source) &&
+      !selectedNodeIds.has(e.target) &&
+      !e.selected  // Also remove selected edges
+    ))
+  }, [nodes, setNodes, setEdges])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Delete or Backspace key
       if (e.key === 'Delete' || e.key === 'Backspace') {
         // prevent browser default (like going back)
         e.preventDefault()
-        deleteSelectedNodes()
+        deleteSelectedElements()
       }
     }
 
@@ -74,7 +96,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [deleteSelectedNodes])
+  }, [deleteSelectedElements])
 
 
   const onConnect = useCallback(
