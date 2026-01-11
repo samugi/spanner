@@ -17,7 +17,8 @@ export function generateScheme(expr: Expression): string {
                 .map(b => `(${renderSymbol(b.sym)} ${generateScheme(b.expr)})`)
                 .join('\n')
 
-            return `(let (${letBindings})\n  ${generateScheme(expr.body)})\n  `;
+            // TODO: temporary - use let* all the time to avoid span ctx binding interdependency issues
+            return `(let* (${letBindings})\n  ${generateScheme(expr.body)})\n  `;
 
         case 'let*':
             let letStarBindings = expr.bindings
